@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-# coding=utf-8
 # ================================================================
 #   Copyright (C) 2019 * Ltd. All rights reserved.
 #
@@ -16,8 +14,8 @@ import cv2
 import random
 import numpy as np
 import tensorflow as tf
-import core.utils as utils
-from core.config import cfg
+from . import utils
+from .config import cfg
 
 
 class Dataset(object):

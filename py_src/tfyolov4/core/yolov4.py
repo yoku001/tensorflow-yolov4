@@ -1,12 +1,9 @@
-#! /usr/bin/env python
-# coding=utf-8
-
 import numpy as np
 import tensorflow as tf
-import core.utils as utils
-import core.common as common
-import core.backbone as backbone
-from core.config import cfg
+from . import utils
+from . import common
+from . import backbone
+from .config import cfg
 
 # NUM_CLASS       = len(utils.read_class_names(cfg.YOLO.CLASSES))
 # STRIDES         = np.array(cfg.YOLO.STRIDES)
