@@ -15,34 +15,27 @@ import random
 import numpy as np
 import tensorflow as tf
 from . import utils
-from .config import cfg
+
+# TODO: remove cfg and use cfg file or options
 
 
 class Dataset(object):
     """implement Dataset here"""
 
-    def __init__(self, dataset_type):
-        self.annot_path = (
-            cfg.TRAIN.ANNOT_PATH
-            if dataset_type == "train"
-            else cfg.TEST.ANNOT_PATH
-        )
-        self.input_sizes = (
-            cfg.TRAIN.INPUT_SIZE
-            if dataset_type == "train"
-            else cfg.TEST.INPUT_SIZE
-        )
-        self.batch_size = (
-            cfg.TRAIN.BATCH_SIZE
-            if dataset_type == "train"
-            else cfg.TEST.BATCH_SIZE
-        )
-        self.data_aug = (
-            cfg.TRAIN.DATA_AUG if dataset_type == "train" else cfg.TEST.DATA_AUG
-        )
+    def __init__(
+        self,
+        annot_path,
+        WH_pixels=416,
+        batch_size=2,
+        strides=[8, 16, 32],
+        isTraining=True,
+    ):
+        self.annot_path = annot_path
+        self.WH_pixels = WH_pixels
+        self.batch_size = batch_size
+        self.isTraining = isTraining
 
-        self.train_input_sizes = cfg.TRAIN.INPUT_SIZE
-        self.strides = np.array(cfg.YOLO.STRIDES)
+        self.strides = np.array(strides)
         self.classes = utils.read_class_names(cfg.YOLO.CLASSES)
         self.num_classes = len(self.classes)
         self.anchors = np.array(utils.get_anchors(cfg.YOLO.ANCHORS))
@@ -54,7 +47,7 @@ class Dataset(object):
         self.num_batchs = int(np.ceil(self.num_samples / self.batch_size))
         self.batch_count = 0
 
-    def load_annotations(self, dataset_type):
+    def load_annotations(self):
         with open(self.annot_path, "r") as f:
             txt = f.readlines()
             annotations = [
@@ -71,7 +64,6 @@ class Dataset(object):
     def __next__(self):
 
         with tf.device("/cpu:0"):
-            # self.train_input_size = random.choice(self.train_input_sizes)
             self.train_input_size = cfg.TRAIN.INPUT_SIZE
             self.train_output_sizes = self.train_input_size // self.strides
 
@@ -252,7 +244,7 @@ class Dataset(object):
         image = cv2.imread(image_path)
         bboxes = np.array([list(map(int, box.split(","))) for box in line[1:]])
 
-        if self.data_aug:
+        if self.isTraining:
             image, bboxes = self.random_horizontal_flip(
                 np.copy(image), np.copy(bboxes)
             )

@@ -3,13 +3,6 @@ import tensorflow as tf
 from . import utils
 from . import common
 from . import backbone
-from .config import cfg
-
-# NUM_CLASS       = len(utils.read_class_names(cfg.YOLO.CLASSES))
-# STRIDES         = np.array(cfg.YOLO.STRIDES)
-# IOU_LOSS_THRESH = cfg.YOLO.IOU_LOSS_THRESH
-# XYSCALE = cfg.YOLO.XYSCALE
-# ANCHORS = utils.get_anchors(cfg.YOLO.ANCHORS)
 
 
 def YOLOv3(input_layer, NUM_CLASS):
