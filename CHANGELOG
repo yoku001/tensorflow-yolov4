@@ -1,3 +1,12 @@
+tensorflow-yolov4 (0.2.0) unstable; urgency=medium
+
+  * pylint: create .pylintrc and run black
+  * core: remove config.py
+  * yolov4: change tfyolov4 to yolov4
+  * yolov4: remove detect**.py and implement YoloV4.inference
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Mon, 08 Jun 2020 02:20:49 +0900
+
 tensorflow-yolov4 (0.1.0) unstable; urgency=medium
 
   * yolov4: fork from 'hunglc007/tensorflow-yolov4-tflite'
