@@ -130,7 +130,7 @@ class YoloV4:
     def predict(self, frame, classes):
         frame_size = frame.shape[:2]
 
-        image_data = utils.image_preporcess(
+        image_data = utils.image_preprocess(
             np.copy(frame), [self.height, self.width]
         )
         image_data = image_data[np.newaxis, ...].astype(np.float32)

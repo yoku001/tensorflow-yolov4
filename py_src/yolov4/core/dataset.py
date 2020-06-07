@@ -254,7 +254,7 @@ class Dataset(object):
             )
 
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image, bboxes = utils.image_preporcess(
+        image, bboxes = utils.image_preprocess(
             np.copy(image),
             [self.train_input_size, self.train_input_size],
             np.copy(bboxes),

@@ -127,7 +127,7 @@ def main(_argv):
             )
             # Predict Process
             image_size = image.shape[:2]
-            image_data = utils.image_preporcess(
+            image_data = utils.image_preprocess(
                 np.copy(image), [INPUT_SIZE, INPUT_SIZE]
             )
             image_data = image_data[np.newaxis, ...].astype(np.float32)
