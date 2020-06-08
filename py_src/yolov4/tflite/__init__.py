@@ -110,8 +110,8 @@ class YoloV4:
         input_details = self.interpreter.get_input_details()
         self.input_shape = input_details[0]["shape"]
         self.input_index = input_details[0]["index"]
-        output_details = self.interpreter.get_output_details()
-        self.output_index = output_details[0]["index"]
+        self.output_details = self.interpreter.get_output_details()
+        self.output_index = self.output_details[0]["index"]
 
     def predict(self, frame, classes):
         frame_size = frame.shape[:2]
@@ -125,7 +125,10 @@ class YoloV4:
         self.interpreter.invoke()
 
         pred_bbox = utils.postprocess_bbbox(
-            self.interpreter.get_tensor(self.output_index),
+            [
+                self.interpreter.get_tensor(self.output_index)
+                for i in range(len(self.output_details))
+            ],
             self.anchors,
             self.strides,
             self.xyscale,
