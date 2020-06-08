@@ -22,15 +22,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import configparser
 import time
 import numpy as np
 import cv2
 import tflite_runtime.interpreter as tflite
 
 from ..core import utils
-
-parser = configparser.ConfigParser()
 
 
 class YoloV4:
@@ -111,7 +108,6 @@ class YoloV4:
         self.input_shape = input_details[0]["shape"]
         self.input_index = input_details[0]["index"]
         self.output_details = self.interpreter.get_output_details()
-        self.output_index = self.output_details[0]["index"]
 
     def predict(self, frame, classes):
         frame_size = frame.shape[:2]
@@ -126,7 +122,7 @@ class YoloV4:
 
         pred_bbox = utils.postprocess_bbbox(
             [
-                self.interpreter.get_tensor(self.output_index)
+                self.interpreter.get_tensor(self.output_details[i]["index"])
                 for i in range(len(self.output_details))
             ],
             self.anchors,

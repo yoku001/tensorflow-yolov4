@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import configparser
 import time
 import numpy as np
 import cv2
@@ -30,8 +29,6 @@ import tensorflow as tf
 
 from ..core import utils
 from ..core import yolov4
-
-parser = configparser.ConfigParser()
 
 
 class YoloV4:
