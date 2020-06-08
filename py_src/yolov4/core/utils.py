@@ -2,7 +2,6 @@ import cv2
 import random
 import colorsys
 import numpy as np
-import tensorflow as tf
 
 
 def load_weights_tiny(model, weights_file):
@@ -346,7 +345,7 @@ def diounms_sort(bboxes, iou_threshold, sigma=0.3, method="nms", beta_nms=0.6):
     return best_bboxes
 
 
-def postprocess_bbbox(pred_bbox, ANCHORS, STRIDES, XYSCALE=[1, 1, 1]):
+def postprocess_bbbox(pred_bbox, anchors, strides, xyscale=[1, 1, 1]):
     for i, pred in enumerate(pred_bbox):
         conv_shape = pred.shape
         output_size = conv_shape[1]
@@ -357,21 +356,23 @@ def postprocess_bbbox(pred_bbox, ANCHORS, STRIDES, XYSCALE=[1, 1, 1]):
             np.stack(xy_grid, axis=-1), axis=2
         )  # [gx, gy, 1, 2]
 
-        xy_grid = np.tile(tf.expand_dims(xy_grid, axis=0), [1, 1, 1, 3, 1])
+        xy_grid = np.tile(np.expand_dims(xy_grid, axis=0), [1, 1, 1, 3, 1])
         xy_grid = xy_grid.astype(np.float)
 
-        # pred_xy = (tf.sigmoid(conv_raw_dxdy) + xy_grid) * STRIDES[i]
         pred_xy = (
-            (tf.sigmoid(conv_raw_dxdy) * XYSCALE[i])
-            - 0.5 * (XYSCALE[i] - 1)
+            ((1 / (1 + np.exp(-conv_raw_dxdy))) * xyscale[i])
+            - 0.5 * (xyscale[i] - 1)
             + xy_grid
-        ) * STRIDES[i]
-        # pred_wh = (tf.exp(conv_raw_dwdh) * ANCHORS[i]) * STRIDES[i]
-        pred_wh = tf.exp(conv_raw_dwdh) * ANCHORS[i]
-        pred[:, :, :, :, 0:4] = tf.concat([pred_xy, pred_wh], axis=-1)
+        ) * strides[i]
 
-    pred_bbox = [tf.reshape(x, (-1, tf.shape(x)[-1])) for x in pred_bbox]
-    pred_bbox = tf.concat(pred_bbox, axis=0)
+        pred_wh = np.exp(conv_raw_dwdh) * anchors[i]
+        pred[:, :, :, :, 0:4] = np.concatenate(
+            [pred_xy, pred_wh], axis=(pred_wh.ndim - 1)
+        )
+
+    pred_bbox = [np.reshape(x, (-1, np.shape(x)[-1])) for x in pred_bbox]
+    pred_bbox = np.concatenate(pred_bbox, axis=0)
+
     return pred_bbox
 
 
@@ -437,6 +438,8 @@ def postprocess_boxes(pred_bbox, org_img_shape, input_size, score_threshold):
 
 
 def freeze_all(model, frozen=True):
+    import tensorflow as tf
+
     model.trainable = not frozen
     if isinstance(model, tf.keras.Model):
         for l in model.layers:
@@ -444,6 +447,8 @@ def freeze_all(model, frozen=True):
 
 
 def unfreeze_all(model, frozen=False):
+    import tensorflow as tf
+
     model.trainable = not frozen
     if isinstance(model, tf.keras.Model):
         for l in model.layers:
