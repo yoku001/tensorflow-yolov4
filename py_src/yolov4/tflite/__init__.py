@@ -64,8 +64,8 @@ class YoloV4:
 
         self.width = self.height = self.input_shape[1]
 
-    def inference(self, media_path, isImage=True):
-        if isImage:
+    def inference(self, media_path, is_image=True, video_interval_ms=1):
+        if is_image:
             frame = cv2.imread(media_path)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
@@ -95,7 +95,7 @@ class YoloV4:
                 cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
                 result = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
                 cv2.imshow("result", result)
-                if cv2.waitKey(1) & 0xFF == ord("q"):
+                if cv2.waitKey(video_interval_ms) & 0xFF == ord("q"):
                     break
 
     def train(self):
