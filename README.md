@@ -13,16 +13,32 @@ Download yolov4.weights file: https://drive.google.com/open?id=1cewMfusmPjYWbrnu
 
 <p align="center"><img src="data/performance.png" width="640"\></p>
 
-## Demo
+## tensorflow
 
 ```python
-import yolov4
+import yolov4.tf as yolo
 
-detector = yolov4.YoloV4()
-detector.inference(
+detector = yolo.YoloV4(
     names_path="/home/hhk7734/tensorflow-yolov4/data/classes/coco.names",
-    media_path="/home/hhk7734/tensorflow-yolov4/data/road.mp4",
     weights_path="/home/hhk7734/Desktop/yolov4.weights",
+)
+
+detector.inference(media_path="/home/hhk7734/tensorflow-yolov4/data/kite.jpg",)
+```
+
+## tensorflow lite
+
+```python
+import yolov4.tflite as yolo
+
+detector = yolo.YoloV4(
+    names_path="/home/hhk7734/tensorflow-yolov4/data/classes/coco.names",
+    tflite_path="/home/hhk7734/Desktop/yolov4.tflite",
+)
+
+detector.inference(
+    media_path="/home/hhk7734/tensorflow-yolov4/data/road.mp4",
     isImage=False,
+    video_interval_ms=1000,
 )
 ```
