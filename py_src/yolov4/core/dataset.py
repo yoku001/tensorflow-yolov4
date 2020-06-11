@@ -9,14 +9,14 @@
 #
 # ================================================================
 
+import random
+
 import os
 import cv2
-import random
 import numpy as np
 import tensorflow as tf
-from . import utils
 
-# TODO: remove cfg and use cfg file or options
+from . import utils
 
 
 class Dataset(object):
@@ -25,27 +25,32 @@ class Dataset(object):
     def __init__(
         self,
         annot_path,
-        WH_pixels=416,
+        classes,
+        anchors,
+        input_sizes=416,
         batch_size=2,
         strides=[8, 16, 32],
-        isTraining=True,
+        is_training=True,
     ):
         self.annot_path = annot_path
-        self.WH_pixels = WH_pixels
+        self.input_sizes = input_sizes
         self.batch_size = batch_size
-        self.isTraining = isTraining
+        self.is_training = is_training
 
         self.strides = np.array(strides)
-        self.classes = utils.read_class_names(cfg.YOLO.CLASSES)
+        self.classes = classes
         self.num_classes = len(self.classes)
-        self.anchors = np.array(utils.get_anchors(cfg.YOLO.ANCHORS))
-        self.anchor_per_scale = cfg.YOLO.ANCHOR_PER_SCALE
+        self.anchors = np.array(anchors)
+        self.anchor_per_scale = 3
         self.max_bbox_per_scale = 150
 
-        self.annotations = self.load_annotations(dataset_type)
+        self.annotations = self.load_annotations()
         self.num_samples = len(self.annotations)
         self.num_batchs = int(np.ceil(self.num_samples / self.batch_size))
         self.batch_count = 0
+
+        self.train_input_size = self.input_sizes
+        self.train_output_sizes = self.train_input_size // self.strides
 
     def load_annotations(self):
         with open(self.annot_path, "r") as f:
@@ -62,11 +67,7 @@ class Dataset(object):
         return self
 
     def __next__(self):
-
         with tf.device("/cpu:0"):
-            self.train_input_size = cfg.TRAIN.INPUT_SIZE
-            self.train_output_sizes = self.train_input_size // self.strides
-
             batch_image = np.zeros(
                 (
                     self.batch_size,
@@ -162,7 +163,6 @@ class Dataset(object):
                 raise StopIteration
 
     def random_horizontal_flip(self, image, bboxes):
-
         if random.random() < 0.5:
             _, w, _ = image.shape
             image = image[:, ::-1, :]
@@ -171,7 +171,6 @@ class Dataset(object):
         return image, bboxes
 
     def random_crop(self, image, bboxes):
-
         if random.random() < 0.5:
             h, w, _ = image.shape
             max_bbox = np.concatenate(
@@ -244,7 +243,7 @@ class Dataset(object):
         image = cv2.imread(image_path)
         bboxes = np.array([list(map(int, box.split(","))) for box in line[1:]])
 
-        if self.isTraining:
+        if self.is_training:
             image, bboxes = self.random_horizontal_flip(
                 np.copy(image), np.copy(bboxes)
             )
