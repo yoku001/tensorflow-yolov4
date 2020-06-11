@@ -4,6 +4,10 @@
 
 # tensorflow-yolov4
 
+```shell
+python3 -m pip install yolov4
+```
+
 YOLOv4 Implemented in Tensorflow 2.
 Convert YOLOv4, YOLOv3, YOLO tiny .weights to .pb, .tflite and trt format for tensorflow, tensorflow lite, tensorRT.
 
@@ -38,7 +42,23 @@ detector = yolo.YoloV4(
 
 detector.inference(
     media_path="/home/hhk7734/tensorflow-yolov4/data/road.mp4",
-    isImage=False,
+    is_image=False,
     video_interval_ms=1000,
+)
+```
+
+## Training
+
+```python
+import yolov4.tf as yolo
+
+detector = yolo.YoloV4(
+    names_path="/home/hhk7734/tensorflow-yolov4/data/classes/coco.names"
+)
+
+detector.train(
+    train_annote_path="/home/hhk7734/tensorflow-yolov4/data/dataset/val2017.txt",
+    test_annote_path="/home/hhk7734/tensorflow-yolov4/data/dataset/val2017.txt",
+    pre_trained_weights="/home/hhk7734/Desktop/yolov4.weights",
 )
 ```
