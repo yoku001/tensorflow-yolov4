@@ -1,5 +1,8 @@
 __pycache__
 .eggs
-dist
-yolov4.egg-info
+.vscode
 build
+checkpoints
+dist
+log
+yolov4.egg-info
