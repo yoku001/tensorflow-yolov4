@@ -122,9 +122,12 @@ class YoloV4:
         learning_rate_init = 1e-3
         learning_rate_end = 1e-6
 
-        physical_devices = tf.config.experimental.list_physical_devices("GPU")
-        if len(physical_devices) > 0:
-            tf.config.experimental.set_memory_growth(physical_devices[0], True)
+        gpus = tf.config.experimental.list_physical_devices("GPU")
+        if gpus:
+            try:
+                tf.config.experimental.set_memory_growth(gpus[0], True)
+            except RuntimeError as e:
+                print(e)
 
         trainset = dataset.Dataset(
             annot_path=train_annote_path,
