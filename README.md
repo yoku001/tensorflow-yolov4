@@ -60,6 +60,8 @@ detector.train(
     train_annote_path="/home/hhk7734/tensorflow-yolov4/data/dataset/val2017.txt",
     test_annote_path="/home/hhk7734/tensorflow-yolov4/data/dataset/val2017.txt",
     pre_trained_weights="/home/hhk7734/Desktop/yolov4.weights",
+    epochs=2000,
+    save_interval=100,
 )
 ```
 
@@ -73,6 +75,8 @@ detector = yolo.YoloV4(
 detector.train(
     train_annote_path="/home/hhk7734/darknet/data/train.txt",
     test_annote_path="/home/hhk7734/darknet/data/train.txt",
-    dataset_type="yolo"
+    dataset_type="yolo",
+    epochs=2000,
+    save_interval=100,
 )
 ```
