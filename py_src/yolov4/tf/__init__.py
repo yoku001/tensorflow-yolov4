@@ -115,8 +115,8 @@ class YoloV4:
         log_dir_path="./log",
         iou_loss_threshold=0.5,
         dataset_type: str = "converted_coco",
-        epochs,
-        save_interval,
+        epochs: int = 50,
+        save_interval: int = 1,
     ):
 
         learning_rate_init = 1e-3
