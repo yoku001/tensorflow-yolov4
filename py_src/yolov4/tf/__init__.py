@@ -115,6 +115,7 @@ class YoloV4:
         log_dir_path="./log",
         iou_loss_threshold=0.5,
         dataset_type: str = "converted_coco",
+        epochs,
     ):
 
         learning_rate_init = 1e-3
@@ -141,14 +142,13 @@ class YoloV4:
         )
         isfreeze = False
         steps_per_epoch = len(trainset)
-        first_stage_epochs = 20
-        second_stage_epochs = 30
+        first_stage_epochs = int(epochs * 0.3)
+        second_stage_epochs = epochs - first_stage_epochs
         global_steps = tf.Variable(1, trainable=False, dtype=tf.int64)
         warmup_steps = 2 * steps_per_epoch
         total_steps = (
             first_stage_epochs + second_stage_epochs
         ) * steps_per_epoch
-        # train_steps = (first_stage_epochs + second_stage_epochs) * steps_per_period
 
         self.make_model(True)
         if pre_trained_weights is not None:
@@ -273,7 +273,7 @@ class YoloV4:
                     )
                 )
 
-        for epoch in range(first_stage_epochs + second_stage_epochs):
+        for epoch in range(epochs):
             if epoch < first_stage_epochs:
                 if not isfreeze:
                     isfreeze = True
