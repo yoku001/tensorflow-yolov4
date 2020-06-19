@@ -1,3 +1,12 @@
+tensorflow-yolov4 (0.5.0) unstable; urgency=medium
+
+  * core: dataset: add yolo type
+  * tf: add dataset_type parameter to YoloV4.train
+  * tf: add epochs parameter to train
+  * tf: add save_interval parameter to train
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Fri, 19 Jun 2020 14:30:50 +0900
+
 tensorflow-yolov4 (0.4.0) unstable; urgency=medium
 
   * core: dataset: remove cfg module
