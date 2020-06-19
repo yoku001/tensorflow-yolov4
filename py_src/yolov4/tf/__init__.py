@@ -114,6 +114,7 @@ class YoloV4:
         trained_weights_path="./checkpoints",
         log_dir_path="./log",
         iou_loss_threshold=0.5,
+        dataset_type: str = "converted_coco",
     ):
 
         learning_rate_init = 1e-3
@@ -128,6 +129,7 @@ class YoloV4:
             classes=self.classes,
             anchors=self.anchors,
             input_sizes=self.width,
+            dataset_type=dataset_type,
         )
         testset = dataset.Dataset(
             annot_path=test_annote_path,
@@ -135,6 +137,7 @@ class YoloV4:
             anchors=self.anchors,
             input_sizes=self.width,
             is_training=False,
+            dataset_type=dataset_type,
         )
         isfreeze = False
         steps_per_epoch = len(trainset)
