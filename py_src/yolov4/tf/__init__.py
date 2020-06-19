@@ -141,19 +141,24 @@ class YoloV4:
             is_training=False,
             dataset_type=dataset_type,
         )
+
         isfreeze = False
+
+        self.make_model(True)
+
+        if pre_trained_weights is not None:
+            self.load_weights(pre_trained_weights)
+            first_stage_epochs = int(epochs * 0.3)
+        else:
+            first_stage_epochs = 0
+
         steps_per_epoch = len(trainset)
-        first_stage_epochs = int(epochs * 0.3)
         second_stage_epochs = epochs - first_stage_epochs
         global_steps = tf.Variable(1, trainable=False, dtype=tf.int64)
         warmup_steps = 2 * steps_per_epoch
         total_steps = (
             first_stage_epochs + second_stage_epochs
         ) * steps_per_epoch
-
-        self.make_model(True)
-        if pre_trained_weights is not None:
-            self.load_weights(pre_trained_weights)
 
         optimizer = tf.keras.optimizers.Adam()
         if os.path.exists(log_dir_path):
