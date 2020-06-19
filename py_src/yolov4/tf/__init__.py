@@ -116,6 +116,7 @@ class YoloV4:
         iou_loss_threshold=0.5,
         dataset_type: str = "converted_coco",
         epochs,
+        save_interval,
     ):
 
         learning_rate_init = 1e-3
@@ -286,11 +287,16 @@ class YoloV4:
                     for name in ["conv2d_93", "conv2d_101", "conv2d_109"]:
                         freeze = self.model.get_layer(name)
                         utils.unfreeze_all(freeze)
+
             for image_data, target in trainset:
                 train_step(image_data, target)
             for image_data, target in testset:
                 test_step(image_data, target)
-            self.model.save_weights(trained_weights_path)
+
+            if epoch % save_interval == 0:
+                self.model.save_weights(trained_weights_path)
+
+        self.model.save_weights(trained_weights_path)
 
     def make_model(self, is_training=False):
         tf.keras.backend.clear_session()
