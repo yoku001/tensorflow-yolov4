@@ -31,11 +31,13 @@ class Dataset(object):
         batch_size=2,
         strides=[8, 16, 32],
         is_training=True,
+        dataset_type: str = "converted_coco",
     ):
         self.annot_path = annot_path
         self.input_sizes = input_sizes
         self.batch_size = batch_size
         self.is_training = is_training
+        self.dataset_type = dataset_type
 
         self.strides = np.array(strides)
         self.classes = classes
@@ -55,11 +57,37 @@ class Dataset(object):
     def load_annotations(self):
         with open(self.annot_path, "r") as f:
             txt = f.readlines()
-            annotations = [
-                line.strip()
-                for line in txt
-                if len(line.strip().split()[1:]) != 0
-            ]
+            if self.dataset_type == "converted_coco":
+                annotations = [
+                    line.strip()
+                    for line in txt
+                    if len(line.strip().split()[1:]) != 0
+                ]
+            elif self.dataset_type == "yolo":
+                annotations = []
+                for line in txt:
+                    image_path = line.strip()
+                    root, _ = os.path.splitext(image_path)
+                    with open(root + ".txt") as fd:
+                        boxes = fd.readlines()
+                        string = ""
+                        for box in boxes:
+                            box = box.strip()
+                            box = box.split()
+                            class_num = int(box[0])
+                            center_x = float(box[1])
+                            center_y = float(box[2])
+                            half_width = float(box[3]) / 2
+                            half_height = float(box[4]) / 2
+                            string += " {},{},{},{},{}".format(
+                                center_x - half_width,
+                                center_y - half_height,
+                                center_x + half_width,
+                                center_y + half_height,
+                                class_num,
+                            )
+                        annotations.append(image_path + string)
+
         np.random.shuffle(annotations)
         return annotations
 
@@ -241,7 +269,16 @@ class Dataset(object):
         if not os.path.exists(image_path):
             raise KeyError("%s does not exist ... " % image_path)
         image = cv2.imread(image_path)
-        bboxes = np.array([list(map(int, box.split(","))) for box in line[1:]])
+        if self.dataset_type == "converted_coco":
+            bboxes = np.array(
+                [list(map(int, box.split(","))) for box in line[1:]]
+            )
+        elif self.dataset_type == "yolo":
+            height, width, _ = image.shape
+            bboxes = np.array(
+                [list(map(float, box.split(","))) for box in line[1:]]
+            )
+            bboxes = bboxes * np.array([width, height, width, height, 1])
 
         if self.is_training:
             image, bboxes = self.random_horizontal_flip(
