@@ -62,3 +62,17 @@ detector.train(
     pre_trained_weights="/home/hhk7734/Desktop/yolov4.weights",
 )
 ```
+
+```python
+import yolov4.tf as yolo
+
+detector = yolo.YoloV4(
+    names_path="/home/hhk7734/darknet/data/class.names"
+)
+
+detector.train(
+    train_annote_path="/home/hhk7734/darknet/data/train.txt",
+    test_annote_path="/home/hhk7734/darknet/data/train.txt",
+    dataset_type="yolo"
+)
+```
