@@ -58,17 +58,14 @@ class YOLOConv2D(Layer):
 class _ResBlock(Model):
     def __init__(self, filters_1: int, filters_2: int):
         super(_ResBlock, self).__init__()
-        self.sequential = tf.keras.Sequential()
-        self.sequential.add(
-            YOLOConv2D(filters=filters_1, kernel_size=1, strides=1)
-        )
-        self.sequential.add(
-            YOLOConv2D(filters=filters_2, kernel_size=3, strides=1)
-        )
+        self.conv1 = YOLOConv2D(filters=filters_1, kernel_size=1, strides=1)
+        self.conv2 = YOLOConv2D(filters=filters_2, kernel_size=3, strides=1)
+        self.add = layers.Add()
 
     def call(self, x):
-        ret = self.sequential(x)
-        x = x + ret
+        ret = self.conv1(x)
+        ret = self.conv2(ret)
+        x = self.add([x, ret])
         return x
 
 

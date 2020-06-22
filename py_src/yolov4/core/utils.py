@@ -84,7 +84,7 @@ def yolo_conv2d_set_weights(yolo_conv2d, fd):
 
 def res_block_set_weights(model, fd):
     for i in range(model.iteration):
-        _res_block = model.sequential.get_layer(index=i).sequential
+        _res_block = model.sequential.get_layer(index=i)
         yolo_conv2d_set_weights(_res_block.get_layer(index=0), fd)
         yolo_conv2d_set_weights(_res_block.get_layer(index=1), fd)
 
