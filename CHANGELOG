@@ -1,3 +1,13 @@
+tensorflow-yolov4 (0.8.0) unstable; urgency=medium
+
+  * core: use tf.keras.layers.UpSampling2D
+  * core: refactor Mish
+  * core: common: remove residual_block
+  * core: remove sequential in _ResBlock
+  * core: backbone: Set LeakyReLU's alpha to 0.1
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Tue, 23 Jun 2020 02:21:01 +0900
+
 tensorflow-yolov4 (0.7.0) unstable; urgency=medium
 
   * tf: fix to proceed to the next step even if an error occurs
