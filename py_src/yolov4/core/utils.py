@@ -4,12 +4,16 @@ import colorsys
 import numpy as np
 
 
-def load_weights(maodel, weights_file):
-    wf = open(weights_file, "rb")
-    major, minor, revision, seen, _ = np.fromfile(wf, dtype=np.int32, count=5)
+def load_weights(model, weights_file):
+    fd = open(weights_file, "rb")
+    major, minor, revision, seen, _ = np.fromfile(fd, dtype=np.int32, count=5)
 
-    j = 0
-    for i in range(110):
+    csp_darknet53 = model.get_layer("csp_darknet53")
+
+    csp_darknet53_set_weights(csp_darknet53, fd)
+
+    j = 78
+    for i in range(78, 110):
         conv_layer_name = "conv2d_%d" % i if i > 0 else "conv2d"
         bn_layer_name = (
             "batch_normalization_%d" % j if j > 0 else "batch_normalization"
@@ -22,18 +26,18 @@ def load_weights(maodel, weights_file):
 
         if i not in [93, 101, 109]:
             # darknet weights: [beta, gamma, mean, variance]
-            bn_weights = np.fromfile(wf, dtype=np.float32, count=4 * filters)
+            bn_weights = np.fromfile(fd, dtype=np.float32, count=4 * filters)
             # tf weights: [gamma, beta, mean, variance]
             bn_weights = bn_weights.reshape((4, filters))[[1, 0, 2, 3]]
             bn_layer = model.get_layer(bn_layer_name)
             j += 1
         else:
-            conv_bias = np.fromfile(wf, dtype=np.float32, count=filters)
+            conv_bias = np.fromfile(fd, dtype=np.float32, count=filters)
 
         # darknet shape (out_dim, in_dim, height, width)
         conv_shape = (filters, in_dim, k_size, k_size)
         conv_weights = np.fromfile(
-            wf, dtype=np.float32, count=np.product(conv_shape)
+            fd, dtype=np.float32, count=np.product(conv_shape)
         )
         # tf shape (height, width, in_dim, out_dim)
         conv_weights = conv_weights.reshape(conv_shape).transpose([2, 3, 1, 0])
@@ -44,8 +48,69 @@ def load_weights(maodel, weights_file):
         else:
             conv_layer.set_weights([conv_weights, conv_bias])
 
-    assert len(wf.read()) == 0, "failed to read all data"
-    wf.close()
+    assert len(fd.read()) == 0, "failed to read all data"
+    fd.close()
+
+
+def yolo_conv2d_set_weights(yolo_conv2d, fd):
+    layer0 = yolo_conv2d.sequential.get_layer(index=0)
+    if "padding" in layer0.name:
+        conv = yolo_conv2d.sequential.get_layer(index=1)
+        bn = yolo_conv2d.sequential.get_layer(index=2)
+    else:
+        conv = layer0
+        bn = yolo_conv2d.sequential.get_layer(index=1)
+
+    filters = yolo_conv2d.filters
+    k_size = yolo_conv2d.kernel_size[0]
+    in_dim = yolo_conv2d.input_dim
+
+    # darknet weights: [beta, gamma, mean, variance]
+    bn_weights = np.fromfile(fd, dtype=np.float32, count=4 * filters)
+    # tf weights: [gamma, beta, mean, variance]
+    bn_weights = bn_weights.reshape((4, filters))[[1, 0, 2, 3]]
+
+    # darknet shape (out_dim, in_dim, height, width)
+    conv_shape = (filters, in_dim, k_size, k_size)
+    conv_weights = np.fromfile(
+        fd, dtype=np.float32, count=np.product(conv_shape)
+    )
+    # tf shape (height, width, in_dim, out_dim)
+    conv_weights = conv_weights.reshape(conv_shape).transpose([2, 3, 1, 0])
+
+    conv.set_weights([conv_weights])
+    bn.set_weights(bn_weights)
+
+
+def res_block_set_weights(model, fd):
+    for i in range(model.iteration):
+        _res_block = model.sequential.get_layer(index=i).sequential
+        yolo_conv2d_set_weights(_res_block.get_layer(index=0), fd)
+        yolo_conv2d_set_weights(_res_block.get_layer(index=1), fd)
+
+
+def csp_res_net_set_weights(model, fd):
+    yolo_conv2d_set_weights(model.get_layer(index=0), fd)
+    yolo_conv2d_set_weights(model.get_layer(index=1), fd)
+    yolo_conv2d_set_weights(model.get_layer(index=2), fd)
+    res_block_set_weights(model.get_layer(index=3), fd)
+    yolo_conv2d_set_weights(model.get_layer(index=4), fd)
+    yolo_conv2d_set_weights(model.get_layer(index=5), fd)
+
+
+def csp_darknet53_set_weights(csp_darknet53, fd):
+    yolo_conv2d_set_weights(csp_darknet53.get_layer(index=0), fd)
+
+    for i in range(1, 1 + 5):
+        csp_res_net_set_weights(csp_darknet53.get_layer(index=i), fd)
+
+    for i in range(6, 6 + 3):
+        yolo_conv2d_set_weights(csp_darknet53.get_layer(index=i), fd)
+
+    # index 9 is SPP
+
+    for i in range(10, 10 + 3):
+        yolo_conv2d_set_weights(csp_darknet53.get_layer(index=i), fd)
 
 
 def read_class_names(class_file_name):
