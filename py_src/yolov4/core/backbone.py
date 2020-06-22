@@ -4,14 +4,6 @@ from tensorflow.keras.layers import Layer
 from . import common
 
 
-class Mish(Layer):
-    def __init__(self, **kwargs):
-        super(Mish, self).__init__(**kwargs)
-
-    def call(self, inputs):
-        return inputs * tf.tanh(tf.math.log(1 + tf.exp(inputs)))
-
-
 class YOLOConv2D(Layer):
     def __init__(
         self,
@@ -50,7 +42,7 @@ class YOLOConv2D(Layer):
             self.sequential.add(layers.BatchNormalization())
 
         if activation == "mish":
-            self.sequential.add(Mish())
+            self.sequential.add(common.Mish())
         elif activation == "leaky":
             self.sequential.add(layers.LeakyReLU())
         else:
