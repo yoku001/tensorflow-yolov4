@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras import layers
 from . import utils
 from . import common
 from . import backbone
@@ -10,7 +11,7 @@ def YOLOv4(input_layer, num_class):
 
     route = conv
     conv = common.convolutional(conv, (1, 1, 512, 256))
-    conv = common.upsample(conv)
+    conv = layers.UpSampling2D()(conv)
     route_2 = common.convolutional(route_2, (1, 1, 512, 256))
     conv = tf.concat([route_2, conv], axis=-1)
 
@@ -22,7 +23,7 @@ def YOLOv4(input_layer, num_class):
 
     route_2 = conv
     conv = common.convolutional(conv, (1, 1, 256, 128))
-    conv = common.upsample(conv)
+    conv = layers.UpSampling2D()(conv)
     route_1 = common.convolutional(route_1, (1, 1, 256, 128))
     conv = tf.concat([route_1, conv], axis=-1)
 
