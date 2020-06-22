@@ -63,22 +63,3 @@ def convolutional(
             conv = Mish()(conv)
 
     return conv
-
-
-def residual_block(
-    input_layer, input_channel, filter_num1, filter_num2, activate_type="leaky"
-):
-    short_cut = input_layer
-    conv = convolutional(
-        input_layer,
-        filters_shape=(1, 1, input_channel, filter_num1),
-        activate_type=activate_type,
-    )
-    conv = convolutional(
-        conv,
-        filters_shape=(3, 3, filter_num1, filter_num2),
-        activate_type=activate_type,
-    )
-
-    residual_output = short_cut + conv
-    return residual_output
