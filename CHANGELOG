@@ -1,3 +1,12 @@
+tensorflow-yolov4 (0.7.0) unstable; urgency=medium
+
+  * tf: fix to proceed to the next step even if an error occurs
+  * tf: modify video_interval_ms to cv_waitKey_delay
+  * core: backbone: refactor CSPDarknet53
+  * core: utils: implement csp_darknet53_set_weights()
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Mon, 22 Jun 2020 23:01:32 +0900
+
 tensorflow-yolov4 (0.6.0) unstable; urgency=medium
 
   * tf: set first_step_epochs according to the weight usage
