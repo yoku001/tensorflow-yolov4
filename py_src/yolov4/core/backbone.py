@@ -44,7 +44,7 @@ class YOLOConv2D(Layer):
         if activation == "mish":
             self.sequential.add(common.Mish())
         elif activation == "leaky":
-            self.sequential.add(layers.LeakyReLU())
+            self.sequential.add(layers.LeakyReLU(alpha=0.1))
         else:
             self.sequential.add(layers.ReLU())
 
