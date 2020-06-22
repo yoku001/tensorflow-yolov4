@@ -6,7 +6,7 @@ from . import backbone
 
 
 def YOLOv4(input_layer, num_class):
-    route_1, route_2, conv = backbone.cspdarknet53(input_layer)
+    route_1, route_2, conv = backbone.CSPDarknet53()(input_layer)
 
     route = conv
     conv = common.convolutional(conv, (1, 1, 512, 256))
