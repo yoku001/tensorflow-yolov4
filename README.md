@@ -27,7 +27,10 @@ detector = yolo.YoloV4(
     weights_path="/home/hhk7734/Desktop/yolov4.weights",
 )
 
-detector.inference(media_path="/home/hhk7734/tensorflow-yolov4/data/kite.jpg",)
+detector.inference(
+    media_path="/home/hhk7734/tensorflow-yolov4/data/kite.jpg",
+    cv_waitKey_delay=1000,
+)
 ```
 
 ## tensorflow lite
@@ -43,7 +46,7 @@ detector = yolo.YoloV4(
 detector.inference(
     media_path="/home/hhk7734/tensorflow-yolov4/data/road.mp4",
     is_image=False,
-    video_interval_ms=1000,
+    cv_waitKey_delay=1,
 )
 ```
 
@@ -60,8 +63,6 @@ detector.train(
     train_annote_path="/home/hhk7734/tensorflow-yolov4/data/dataset/val2017.txt",
     test_annote_path="/home/hhk7734/tensorflow-yolov4/data/dataset/val2017.txt",
     pre_trained_weights="/home/hhk7734/Desktop/yolov4.weights",
-    epochs=2000,
-    save_interval=100,
 )
 ```
 
@@ -76,7 +77,5 @@ detector.train(
     train_annote_path="/home/hhk7734/darknet/data/train.txt",
     test_annote_path="/home/hhk7734/darknet/data/train.txt",
     dataset_type="yolo",
-    epochs=2000,
-    save_interval=100,
 )
 ```
