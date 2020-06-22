@@ -30,37 +30,21 @@ class YOLOConv2D(Layer):
         else:
             self.kernel_size = kernel_size
 
-        if strides == 1:
-            self.sequential.add(
-                layers.Conv2D(
-                    filters=filters,
-                    kernel_size=kernel_size,
-                    padding="same",
-                    strides=1,
-                    use_bias=not bn,
-                    kernel_regularizer=tf.keras.regularizers.l2(0.0005),
-                    kernel_initializer=tf.random_normal_initializer(
-                        stddev=0.01
-                    ),
-                    bias_initializer=tf.constant_initializer(0.0),
-                )
-            )
-        else:
+        if strides == 2:
             self.sequential.add(layers.ZeroPadding2D(((1, 0), (1, 0))))
-            self.sequential.add(
-                layers.Conv2D(
-                    filters=filters,
-                    kernel_size=kernel_size,
-                    padding="valid",
-                    strides=2,
-                    use_bias=not bn,
-                    kernel_regularizer=tf.keras.regularizers.l2(0.0005),
-                    kernel_initializer=tf.random_normal_initializer(
-                        stddev=0.01
-                    ),
-                    bias_initializer=tf.constant_initializer(0.0),
-                )
+
+        self.sequential.add(
+            layers.Conv2D(
+                filters=filters,
+                kernel_size=kernel_size,
+                padding="same" if strides == 1 else "valid",
+                strides=strides,
+                use_bias=not bn,
+                kernel_regularizer=tf.keras.regularizers.l2(0.0005),
+                kernel_initializer=tf.random_normal_initializer(stddev=0.01),
+                bias_initializer=tf.constant_initializer(0.0),
             )
+        )
 
         if bn:
             self.sequential.add(layers.BatchNormalization())
