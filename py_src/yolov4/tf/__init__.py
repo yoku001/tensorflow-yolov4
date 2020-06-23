@@ -141,6 +141,35 @@ class YoloV4:
         elif isinstance(xyscale, np.ndarray):
             self._xyscale = xyscale
 
+    def make_model(self, is_training=False):
+        self._has_weights = False
+        tf.keras.backend.clear_session()
+        # [height, width, channel]
+        input_layer = tf.keras.layers.Input(
+            [self.input_size, self.input_size, 3]
+        )
+        feature_maps = yolov4.YOLOv4(input_layer, len(self.classes))
+
+        bbox_tensors = []
+        for i, fm in enumerate(feature_maps):
+            if is_training:
+                bbox_tensor = yolov4.decode_train(
+                    fm,
+                    len(self.classes),
+                    self.strides,
+                    self.anchors,
+                    i,
+                    self.xyscale,
+                )
+                bbox_tensors.append(fm)
+
+            else:
+                bbox_tensor = yolov4.decode(fm, len(self.classes), i)
+
+            bbox_tensors.append(bbox_tensor)
+
+        self.model = tf.keras.Model(input_layer, bbox_tensors)
+
     def load_weights(self, path: str, weights_type: str = "tf"):
         """
         Usage:
@@ -154,12 +183,32 @@ class YoloV4:
 
         self._has_weights = True
 
+    def predict(self, frame):
+        frame_size = frame.shape[:2]
+
+        image_data = utils.image_preprocess(
+            np.copy(frame), [self.input_size, self.input_size]
+        )
+        image_data = image_data[np.newaxis, ...].astype(np.float32)
+
+        pred_bbox = self.model.predict(image_data)
+
+        pred_bbox = utils.postprocess_bbbox(
+            pred_bbox, self.anchors, self.strides, self.xyscale
+        )
+        bboxes = utils.postprocess_boxes(
+            pred_bbox, frame_size, self.input_size, 0.25
+        )
+        bboxes = utils.nms(bboxes, 0.213, method="nms")
+
+        return utils.draw_bbox(frame, bboxes, self.classes)
+
     def inference(self, media_path, is_image=True, cv_waitKey_delay=10):
         if is_image:
             frame = cv2.imread(media_path)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            image = self.predict(frame, self.classes)
+            image = self.predict(frame)
 
             cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
             result = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
@@ -175,7 +224,7 @@ class YoloV4:
                     raise ValueError("No image! Try with another video format")
 
                 prev_time = time.time()
-                image = self.predict(frame, self.classes)
+                image = self.predict(frame)
                 curr_time = time.time()
                 exec_time = curr_time - prev_time
 
@@ -382,52 +431,3 @@ class YoloV4:
                 self.model.save_weights(trained_weights_path)
 
         self.model.save_weights(trained_weights_path)
-
-    def make_model(self, is_training=False):
-        self._has_weights = False
-        tf.keras.backend.clear_session()
-        # [height, width, channel]
-        input_layer = tf.keras.layers.Input(
-            [self.input_size, self.input_size, 3]
-        )
-        feature_maps = yolov4.YOLOv4(input_layer, len(self.classes))
-
-        bbox_tensors = []
-        for i, fm in enumerate(feature_maps):
-            if is_training:
-                bbox_tensor = yolov4.decode_train(
-                    fm,
-                    len(self.classes),
-                    self.strides,
-                    self.anchors,
-                    i,
-                    self.xyscale,
-                )
-                bbox_tensors.append(fm)
-
-            else:
-                bbox_tensor = yolov4.decode(fm, len(self.classes), i)
-
-            bbox_tensors.append(bbox_tensor)
-
-        self.model = tf.keras.Model(input_layer, bbox_tensors)
-
-    def predict(self, frame, classes):
-        frame_size = frame.shape[:2]
-
-        image_data = utils.image_preprocess(
-            np.copy(frame), [self.input_size, self.input_size]
-        )
-        image_data = image_data[np.newaxis, ...].astype(np.float32)
-
-        pred_bbox = self.model.predict(image_data)
-
-        pred_bbox = utils.postprocess_bbbox(
-            pred_bbox, self.anchors, self.strides, self.xyscale
-        )
-        bboxes = utils.postprocess_boxes(
-            pred_bbox, frame_size, self.input_size, 0.25
-        )
-        bboxes = utils.nms(bboxes, 0.213, method="nms")
-
-        return utils.draw_bbox(frame, bboxes, classes)
