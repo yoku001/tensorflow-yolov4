@@ -1,3 +1,20 @@
+tensorflow-yolov4 (0.9.0) unstable; urgency=medium
+
+  * tf: modify hyperparameters as properties
+  * tf: add weights_type argument to load_weights()
+  * core: utils: implement _np_fromfile()
+  * core: utils: implement a way to partially load weights
+  * tf: train: move learning_rate_* to argument
+  * core: move YOLOConv2D to common
+  * core: common: remove bn argument of YOLOConv2D
+  * core: utils: refactor yolo_conv2d_set_weights
+  * core: yolov4: refactor YOLOv4
+  * core: utils: refactor load_weights
+  * tf: refactor make_model
+  * yolov4: change YoloV4 to YOLOv4
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Wed, 24 Jun 2020 02:58:27 +0900
+
 tensorflow-yolov4 (0.8.0) unstable; urgency=medium
 
   * core: use tf.keras.layers.UpSampling2D
