@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras.layers import Layer
+from typing import Union
 
 
 class BatchNormalization(tf.keras.layers.BatchNormalization):
@@ -30,44 +31,53 @@ class YOLOConv2D(Layer):
     def __init__(
         self,
         filters: int,
-        kernel_size: int,
-        strides: int,
-        bn: bool = True,
+        kernel_size: Union[int, tuple],
+        strides: Union[int, tuple] = 1,
         activation: str = "mish",
         **kwargs
     ):
         super(YOLOConv2D, self).__init__(**kwargs)
-        self.sequential = tf.keras.Sequential()
+
         self.filters = filters
+
         if isinstance(kernel_size, int):
             self.kernel_size = (kernel_size, kernel_size)
         else:
             self.kernel_size = kernel_size
 
-        if strides == 2:
+        if isinstance(strides, int):
+            self.strides = (strides, strides)
+        else:
+            self.strides = strides
+
+        self.activation = activation
+
+        self.sequential = tf.keras.Sequential()
+
+        if self.strides[0] == 2:
             self.sequential.add(layers.ZeroPadding2D(((1, 0), (1, 0))))
 
         self.sequential.add(
             layers.Conv2D(
-                filters=filters,
-                kernel_size=kernel_size,
-                padding="same" if strides == 1 else "valid",
-                strides=strides,
-                use_bias=not bn,
+                filters=self.filters,
+                kernel_size=self.kernel_size,
+                padding="same" if self.strides[0] == 1 else "valid",
+                strides=self.strides,
+                use_bias=False if self.activation is not None else True,
                 kernel_regularizer=tf.keras.regularizers.l2(0.0005),
                 kernel_initializer=tf.random_normal_initializer(stddev=0.01),
                 bias_initializer=tf.constant_initializer(0.0),
             )
         )
 
-        if bn:
+        if self.activation is not None:
             self.sequential.add(layers.BatchNormalization())
 
-        if activation == "mish":
+        if self.activation == "mish":
             self.sequential.add(Mish())
-        elif activation == "leaky":
+        elif self.activation == "leaky":
             self.sequential.add(layers.LeakyReLU(alpha=0.1))
-        else:
+        elif self.activation == "relu":
             self.sequential.add(layers.ReLU())
 
     def build(self, input_shape):
