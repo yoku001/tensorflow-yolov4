@@ -37,32 +37,53 @@ from ..core import yolov4
 
 class YoloV4:
     def __init__(self):
-        self.strides = np.array([8, 16, 32])
-        self.anchors = np.array(
-            [
-                12,
-                16,
-                19,
-                36,
-                40,
-                28,
-                36,
-                75,
-                76,
-                55,
-                72,
-                146,
-                142,
-                110,
-                192,
-                243,
-                459,
-                401,
-            ],
-            dtype=np.float32,
-        ).reshape(3, 3, 2)
-        self.xyscale = np.array([1.2, 1.1, 1.05])
-        self.width = self.height = 608
+        """
+        Default configuration
+        """
+        self.anchors = [
+            12,
+            16,
+            19,
+            36,
+            40,
+            28,
+            36,
+            75,
+            76,
+            55,
+            72,
+            146,
+            142,
+            110,
+            192,
+            243,
+            459,
+            401,
+        ]
+        self._classes = None
+        self.input_size = 608
+        self.strides = [8, 16, 32]
+        self.xyscale = [1.2, 1.1, 1.05]
+
+    @property
+    def anchors(self):
+        return self._anchors
+
+    @anchors.setter
+    def anchors(self, anchors: Union[list, tuple, np.ndarray]):
+        """
+        Usage:
+            yolo.anchors = [12, 16, 19, 36, 40, 28, 36, 75,
+                            76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
+            yolo.anchors = np.array([12, 16, 19, 36, 40, 28, 36, 75,
+                            76, 55, 72, 146, 142, 110, 192, 243, 459, 401])
+        """
+        if isinstance(anchors, (list, tuple)):
+            self._anchors = np.array(anchors)
+        elif isinstance(anchors, np.ndarray):
+            self._anchors = anchors
+
+        self._anchors = self._anchors.astype(np.float32).reshape(3, 3, 2)
 
     @property
     def classes(self):
@@ -81,7 +102,38 @@ class YoloV4:
             self._classes = data
         else:
             raise TypeError("YoloV4: Set classes path or dictionary")
-        self.num_class = len(self._classes)
+
+    @property
+    def strides(self):
+        return self._strides
+
+    @strides.setter
+    def strides(self, strides: Union[list, tuple, np.ndarray]):
+        """
+        Usage:
+            yolo.strides = [8, 16, 32]
+            yolo.strides = np.array([8, 16, 32])
+        """
+        if isinstance(strides, (list, tuple)):
+            self._strides = np.array(strides)
+        elif isinstance(strides, np.ndarray):
+            self._strides = strides
+
+    @property
+    def xyscale(self):
+        return self._xyscale
+
+    @xyscale.setter
+    def xyscale(self, xyscale: Union[list, tuple, np.ndarray]):
+        """
+        Usage:
+            yolo.xyscale = [1.2, 1.1, 1.05]
+            yolo.xyscale = np.array([1.2, 1.1, 1.05])
+        """
+        if isinstance(xyscale, (list, tuple)):
+            self._xyscale = np.array(xyscale)
+        elif isinstance(xyscale, np.ndarray):
+            self._xyscale = xyscale
 
     def load_weights(self, path: str, weights_type: str = "tf"):
         """
@@ -155,14 +207,14 @@ class YoloV4:
             annot_path=train_annote_path,
             classes=self._classes,
             anchors=self.anchors,
-            input_sizes=self.width,
+            input_sizes=self.input_size,
             dataset_type=dataset_type,
         )
         testset = dataset.Dataset(
             annot_path=test_annote_path,
             classes=self._classes,
             anchors=self.anchors,
-            input_sizes=self.width,
+            input_sizes=self.input_size,
             is_training=False,
             dataset_type=dataset_type,
         )
@@ -201,7 +253,7 @@ class YoloV4:
                         target[i][0],
                         target[i][1],
                         strides=self.strides,
-                        num_class=self.num_class,
+                        num_class=len(self.classes),
                         iou_loss_threshold=iou_loss_threshold,
                         i=i,
                     )
@@ -279,7 +331,7 @@ class YoloV4:
                         target[i][0],
                         target[i][1],
                         strides=self.strides,
-                        num_class=self.num_class,
+                        num_class=len(self.classes),
                         iou_loss_threshold=iou_loss_threshold,
                         i=i,
                     )
@@ -328,15 +380,18 @@ class YoloV4:
     def make_model(self, is_training=False):
         self._has_weights = False
         tf.keras.backend.clear_session()
-        input_layer = tf.keras.layers.Input([self.height, self.width, 3])
-        feature_maps = yolov4.YOLOv4(input_layer, self.num_class)
+        # [height, width, channel]
+        input_layer = tf.keras.layers.Input(
+            [self.input_size, self.input_size, 3]
+        )
+        feature_maps = yolov4.YOLOv4(input_layer, len(self.classes))
 
         bbox_tensors = []
         for i, fm in enumerate(feature_maps):
             if is_training:
                 bbox_tensor = yolov4.decode_train(
                     fm,
-                    self.num_class,
+                    len(self.classes),
                     self.strides,
                     self.anchors,
                     i,
@@ -345,7 +400,7 @@ class YoloV4:
                 bbox_tensors.append(fm)
 
             else:
-                bbox_tensor = yolov4.decode(fm, self.num_class, i)
+                bbox_tensor = yolov4.decode(fm, len(self.classes), i)
 
             bbox_tensors.append(bbox_tensor)
 
@@ -355,7 +410,7 @@ class YoloV4:
         frame_size = frame.shape[:2]
 
         image_data = utils.image_preprocess(
-            np.copy(frame), [self.height, self.width]
+            np.copy(frame), [self.input_size, self.input_size]
         )
         image_data = image_data[np.newaxis, ...].astype(np.float32)
 
@@ -365,7 +420,7 @@ class YoloV4:
             pred_bbox, self.anchors, self.strides, self.xyscale
         )
         bboxes = utils.postprocess_boxes(
-            pred_bbox, frame_size, self.width, 0.25
+            pred_bbox, frame_size, self.input_size, 0.25
         )
         bboxes = utils.nms(bboxes, 0.213, method="nms")
 
