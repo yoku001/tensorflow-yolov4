@@ -15,47 +15,12 @@ def load_weights(model, weights_file):
         if not csp_darknet53_set_weights(csp_darknet53, fd):
             return False
 
-        j = 78
         for i in range(78, 110):
-            conv_layer_name = "conv2d_%d" % i if i > 0 else "conv2d"
-            bn_layer_name = (
-                "batch_normalization_%d" % j if j > 0 else "batch_normalization"
-            )
+            layer_name = "yolo_conv2d_%d" % i
 
-            conv_layer = model.get_layer(conv_layer_name)
-            filters = conv_layer.filters
-            k_size = conv_layer.kernel_size[0]
-            in_dim = conv_layer.input_shape[-1]
-
-            if i not in [93, 101, 109]:
-                # darknet weights: [beta, gamma, mean, variance]
-                bn_weights = _np_fromfile(
-                    fd, dtype=np.float32, count=4 * filters
-                )
-                if bn_weights is None:
-                    return False
-                # tf weights: [gamma, beta, mean, variance]
-                bn_weights = bn_weights.reshape((4, filters))[[1, 0, 2, 3]]
-                bn_layer = model.get_layer(bn_layer_name)
-                j += 1
-            else:
-                conv_bias = _np_fromfile(fd, dtype=np.float32, count=filters)
-
-            # darknet shape (out_dim, in_dim, height, width)
-            conv_shape = (filters, in_dim, k_size, k_size)
-            conv_weights = _np_fromfile(
-                fd, dtype=np.float32, count=np.product(conv_shape)
-            )
-            # tf shape (height, width, in_dim, out_dim)
-            conv_weights = conv_weights.reshape(conv_shape).transpose(
-                [2, 3, 1, 0]
-            )
-
-            if i not in [93, 101, 109]:
-                conv_layer.set_weights([conv_weights])
-                bn_layer.set_weights(bn_weights)
-            else:
-                conv_layer.set_weights([conv_weights, conv_bias])
+            yolo_conv2d = model.get_layer(layer_name)
+            if not yolo_conv2d_set_weights(yolo_conv2d, fd):
+                return False
 
         if len(fd.read()) != 0:
             raise ValueError("Model and weights file do not match.")
