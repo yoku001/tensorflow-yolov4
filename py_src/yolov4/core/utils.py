@@ -74,35 +74,45 @@ def _np_fromfile(fd, dtype, count):
 
 
 def yolo_conv2d_set_weights(yolo_conv2d, fd):
-    layer0 = yolo_conv2d.sequential.get_layer(index=0)
-    if "padding" in layer0.name:
-        conv = yolo_conv2d.sequential.get_layer(index=1)
-        bn = yolo_conv2d.sequential.get_layer(index=2)
+    if yolo_conv2d.strides[0] == 1:
+        conv_index = 0
     else:
-        conv = layer0
-        bn = yolo_conv2d.sequential.get_layer(index=1)
-
+        conv_index = 1
     filters = yolo_conv2d.filters
-    k_size = yolo_conv2d.kernel_size[0]
-    in_dim = yolo_conv2d.input_dim
 
-    # darknet weights: [beta, gamma, mean, variance]
-    bn_weights = _np_fromfile(fd, dtype=np.float32, count=4 * filters)
-    if bn_weights is None:
-        return False
-    # tf weights: [gamma, beta, mean, variance]
-    bn_weights = bn_weights.reshape((4, filters))[[1, 0, 2, 3]]
+    if yolo_conv2d.activation is not None:
+        bn = yolo_conv2d.sequential.get_layer(index=conv_index + 1)
+
+        # darknet weights: [beta, gamma, mean, variance]
+        bn_weights = _np_fromfile(fd, dtype=np.float32, count=4 * filters)
+        if bn_weights is None:
+            return False
+        # tf weights: [gamma, beta, mean, variance]
+        bn_weights = bn_weights.reshape((4, filters))[[1, 0, 2, 3]]
+
+        bn.set_weights(bn_weights)
+        conv_bias = None
+    else:
+        conv_bias = _np_fromfile(fd, dtype=np.float32, count=filters)
+        if conv_bias is None:
+            return False
+
+    conv = yolo_conv2d.sequential.get_layer(index=conv_index)
 
     # darknet shape (out_dim, in_dim, height, width)
-    conv_shape = (filters, in_dim, k_size, k_size)
+    conv_shape = (filters, yolo_conv2d.input_dim, *yolo_conv2d.kernel_size)
     conv_weights = _np_fromfile(
         fd, dtype=np.float32, count=np.product(conv_shape)
     )
+    if conv_weights is None:
+        return False
     # tf shape (height, width, in_dim, out_dim)
     conv_weights = conv_weights.reshape(conv_shape).transpose([2, 3, 1, 0])
 
-    conv.set_weights([conv_weights])
-    bn.set_weights(bn_weights)
+    if conv_bias is None:
+        conv.set_weights([conv_weights])
+    else:
+        conv.set_weights([conv_weights, conv_bias])
 
     return True
 
