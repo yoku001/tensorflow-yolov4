@@ -30,7 +30,7 @@ import tflite_runtime.interpreter as tflite
 from ..core import utils
 
 
-class YoloV4:
+class YOLOv4:
     def __init__(self, names_path, tflite_path):
         self.strides = np.array([8, 16, 32])
         self.anchors = np.array(

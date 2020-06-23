@@ -35,7 +35,7 @@ from ..core import utils
 from ..core import yolov4
 
 
-class YoloV4:
+class YOLOv4:
     def __init__(self):
         """
         Default configuration
