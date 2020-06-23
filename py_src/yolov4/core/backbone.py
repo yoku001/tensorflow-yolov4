@@ -112,12 +112,13 @@ class SPP(Model):
 
 class CSPDarknet53(Model):
     """
-    conv2d ~ conv2d_77
+    conv2d(_0) ~ conv2d_77
     """
 
     def __init__(self):
         super(CSPDarknet53, self).__init__()
-        self.conv1 = YOLOConv2D(filters=32, kernel_size=3, strides=1,)
+        self.conv0 = YOLOConv2D(filters=32, kernel_size=3, strides=1,)
+
         self.res_block1 = CSPResNet(filters_1=64, filters_2=64, iteration=1)
         self.res_block2 = CSPResNet(filters_1=128, filters_2=64, iteration=2)
         self.res_block3 = CSPResNet(filters_1=256, filters_2=128, iteration=8)
@@ -125,28 +126,32 @@ class CSPDarknet53(Model):
         self.res_block4 = CSPResNet(filters_1=512, filters_2=256, iteration=8)
 
         self.res_block5 = CSPResNet(filters_1=1024, filters_2=512, iteration=4)
-        self.conv2 = YOLOConv2D(
+
+        self.conv72 = YOLOConv2D(
             filters=512, kernel_size=1, strides=1, activation="leaky"
         )
-        self.conv3 = YOLOConv2D(
+        self.conv73 = YOLOConv2D(
             filters=1024, kernel_size=3, strides=1, activation="leaky"
         )
-        self.conv4 = YOLOConv2D(
+        self.conv74 = YOLOConv2D(
             filters=512, kernel_size=1, strides=1, activation="leaky"
         )
+
         self.spp = SPP()
-        self.conv5 = YOLOConv2D(
+
+        self.conv75 = YOLOConv2D(
             filters=512, kernel_size=1, strides=1, activation="leaky"
         )
-        self.conv6 = YOLOConv2D(
+        self.conv76 = YOLOConv2D(
             filters=1024, kernel_size=3, strides=1, activation="leaky"
         )
-        self.conv7 = YOLOConv2D(
+        self.conv77 = YOLOConv2D(
             filters=512, kernel_size=1, strides=1, activation="leaky"
         )
 
     def call(self, x):
-        x = self.conv1(x)
+        x = self.conv0(x)
+
         x = self.res_block1(x)
         x = self.res_block2(x)
         x = self.res_block3(x)
@@ -158,13 +163,15 @@ class CSPDarknet53(Model):
         route2 = x
 
         x = self.res_block5(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.conv4(x)
+        x = self.conv72(x)
+        x = self.conv73(x)
+        x = self.conv74(x)
+
         x = self.spp(x)
-        x = self.conv5(x)
-        x = self.conv6(x)
-        x = self.conv7(x)
+
+        x = self.conv75(x)
+        x = self.conv76(x)
+        x = self.conv77(x)
 
         route3 = x
 
