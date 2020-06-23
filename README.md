@@ -17,12 +17,21 @@ Download yolov4.weights file: https://drive.google.com/open?id=1cewMfusmPjYWbrnu
 
 <p align="center"><img src="data/performance.png" width="640"\></p>
 
-## tensorflow
+## Help
 
 ```python
-from yolov4.tf import YoloV4
+>>> from yolov4.tf import YOLOv4
+>>> help(YOLOv4)
+```
 
-yolo = YoloV4()
+## Inference
+
+### tensorflow
+
+```python
+from yolov4.tf import YOLOv4
+
+yolo = YOLOv4()
 
 yolo.classes = "/home/hhk7734/tensorflow-yolov4/data/classes/coco.names"
 
@@ -35,12 +44,12 @@ yolo.inference(
 )
 ```
 
-## tensorflow lite
+### tensorflow lite
 
 ```python
 import yolov4.tflite as yolo
 
-detector = yolo.YoloV4(
+detector = yolo.YOLOv4(
     names_path="/home/hhk7734/tensorflow-yolov4/data/classes/coco.names",
     tflite_path="/home/hhk7734/Desktop/yolov4.tflite",
 )
@@ -55,13 +64,14 @@ detector.inference(
 ## Training
 
 ```python
-from yolov4.tf import YoloV4
+from yolov4.tf import YOLOv4
 
-yolo = YoloV4()
+yolo = YOLOv4()
 
 yolo.classes = "/home/hhk7734/tensorflow-yolov4/data/classes/coco.names"
 
-yolo.make_model(is_training=True)
+yolo.input_size = 416
+yolo.make_model()
 yolo.load_weights("/home/hhk7734/Desktop/yolov4.conv.137", weights_type="yolo")
 
 yolo.train(
@@ -71,13 +81,14 @@ yolo.train(
 ```
 
 ```python
-from yolov4.tf import YoloV4
+from yolov4.tf import YOLOv4
 
-yolo = YoloV4()
+yolo = YOLOv4()
 
 yolo.classes = "/home/hhk7734/darknet/data/class.names"
 
-yolo.make_model(is_training=True)
+yolo.input_size = 416
+yolo.make_model()
 
 yolo.train(
     train_annote_path="/home/hhk7734/darknet/data/train.txt",
