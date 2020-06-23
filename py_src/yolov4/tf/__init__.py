@@ -36,7 +36,7 @@ from ..core import yolov4
 
 
 class YoloV4:
-    def __init__(self, names_path, weights_path=None):
+    def __init__(self, names_path):
         self.strides = np.array([8, 16, 32])
         self.anchors = np.array(
             [
@@ -68,9 +68,6 @@ class YoloV4:
 
         self.make_model()
 
-        if weights_path is not None:
-            self.load_weights(weights_path)
-
     @property
     def classes(self):
         return self._classes
@@ -87,6 +84,17 @@ class YoloV4:
         elif isinstance(data, dict):
             self._classes = data
         self.num_class = len(self._classes)
+
+    def load_weights(self, path: str, weights_type: str = "yolo"):
+        """
+        Usage:
+            yolo.load_weights("yolov4.weights")
+            yolo.load_weights("checkpoints", weights_type="tf")
+        """
+        if weights_type == "yolo":
+            utils.load_weights(self.model, path)
+        elif weights_type == "tf":
+            self.model.load_weights(path).expect_partial()
 
     def inference(self, media_path, is_image=True, cv_waitKey_delay=10):
         if is_image:
@@ -346,17 +354,6 @@ class YoloV4:
             bbox_tensors.append(bbox_tensor)
 
         self.model = tf.keras.Model(input_layer, bbox_tensors)
-
-    def load_weights(self, weights_path):
-        if (
-            weights_path.split(".")[len(weights_path.split(".")) - 1]
-            == "weights"
-        ):
-            utils.load_weights(self.model, weights_path)
-        else:
-            self.model.load_weights(weights_path).expect_partial()
-
-        self.model.summary()
 
     def predict(self, frame, classes):
         frame_size = frame.shape[:2]
