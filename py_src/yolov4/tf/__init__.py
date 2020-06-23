@@ -134,7 +134,6 @@ class YoloV4:
         self,
         train_annote_path,
         test_annote_path,
-        pre_trained_weights=None,
         trained_weights_path="./checkpoints",
         log_dir_path="./log",
         iou_loss_threshold=0.5,
@@ -171,8 +170,7 @@ class YoloV4:
 
         isfreeze = False
 
-        if pre_trained_weights is not None:
-            self.load_weights(pre_trained_weights)
+        if self._has_weights:
             first_stage_epochs = int(epochs * 0.3)
         else:
             first_stage_epochs = 0
