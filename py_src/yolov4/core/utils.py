@@ -5,51 +5,62 @@ import numpy as np
 
 
 def load_weights(model, weights_file):
-    fd = open(weights_file, "rb")
-    major, minor, revision, seen, _ = _np_fromfile(fd, dtype=np.int32, count=5)
-
-    csp_darknet53 = model.get_layer("csp_darknet53")
-
-    csp_darknet53_set_weights(csp_darknet53, fd)
-
-    j = 78
-    for i in range(78, 110):
-        conv_layer_name = "conv2d_%d" % i if i > 0 else "conv2d"
-        bn_layer_name = (
-            "batch_normalization_%d" % j if j > 0 else "batch_normalization"
+    with open(weights_file, "rb") as fd:
+        major, minor, revision, seen, _ = _np_fromfile(
+            fd, dtype=np.int32, count=5
         )
 
-        conv_layer = model.get_layer(conv_layer_name)
-        filters = conv_layer.filters
-        k_size = conv_layer.kernel_size[0]
-        in_dim = conv_layer.input_shape[-1]
+        csp_darknet53 = model.get_layer("csp_darknet53")
 
-        if i not in [93, 101, 109]:
-            # darknet weights: [beta, gamma, mean, variance]
-            bn_weights = _np_fromfile(fd, dtype=np.float32, count=4 * filters)
-            # tf weights: [gamma, beta, mean, variance]
-            bn_weights = bn_weights.reshape((4, filters))[[1, 0, 2, 3]]
-            bn_layer = model.get_layer(bn_layer_name)
-            j += 1
-        else:
-            conv_bias = _np_fromfile(fd, dtype=np.float32, count=filters)
+        if not csp_darknet53_set_weights(csp_darknet53, fd):
+            return False
 
-        # darknet shape (out_dim, in_dim, height, width)
-        conv_shape = (filters, in_dim, k_size, k_size)
-        conv_weights = _np_fromfile(
-            fd, dtype=np.float32, count=np.product(conv_shape)
-        )
-        # tf shape (height, width, in_dim, out_dim)
-        conv_weights = conv_weights.reshape(conv_shape).transpose([2, 3, 1, 0])
+        j = 78
+        for i in range(78, 110):
+            conv_layer_name = "conv2d_%d" % i if i > 0 else "conv2d"
+            bn_layer_name = (
+                "batch_normalization_%d" % j if j > 0 else "batch_normalization"
+            )
 
-        if i not in [93, 101, 109]:
-            conv_layer.set_weights([conv_weights])
-            bn_layer.set_weights(bn_weights)
-        else:
-            conv_layer.set_weights([conv_weights, conv_bias])
+            conv_layer = model.get_layer(conv_layer_name)
+            filters = conv_layer.filters
+            k_size = conv_layer.kernel_size[0]
+            in_dim = conv_layer.input_shape[-1]
 
-    assert len(fd.read()) == 0, "failed to read all data"
-    fd.close()
+            if i not in [93, 101, 109]:
+                # darknet weights: [beta, gamma, mean, variance]
+                bn_weights = _np_fromfile(
+                    fd, dtype=np.float32, count=4 * filters
+                )
+                if bn_weights is None:
+                    return False
+                # tf weights: [gamma, beta, mean, variance]
+                bn_weights = bn_weights.reshape((4, filters))[[1, 0, 2, 3]]
+                bn_layer = model.get_layer(bn_layer_name)
+                j += 1
+            else:
+                conv_bias = _np_fromfile(fd, dtype=np.float32, count=filters)
+
+            # darknet shape (out_dim, in_dim, height, width)
+            conv_shape = (filters, in_dim, k_size, k_size)
+            conv_weights = _np_fromfile(
+                fd, dtype=np.float32, count=np.product(conv_shape)
+            )
+            # tf shape (height, width, in_dim, out_dim)
+            conv_weights = conv_weights.reshape(conv_shape).transpose(
+                [2, 3, 1, 0]
+            )
+
+            if i not in [93, 101, 109]:
+                conv_layer.set_weights([conv_weights])
+                bn_layer.set_weights(bn_weights)
+            else:
+                conv_layer.set_weights([conv_weights, conv_bias])
+
+        if len(fd.read()) != 0:
+            raise ValueError("Model and weights file do not match.")
+
+    return True
 
 
 def _np_fromfile(fd, dtype, count):
@@ -77,6 +88,8 @@ def yolo_conv2d_set_weights(yolo_conv2d, fd):
 
     # darknet weights: [beta, gamma, mean, variance]
     bn_weights = _np_fromfile(fd, dtype=np.float32, count=4 * filters)
+    if bn_weights is None:
+        return False
     # tf weights: [gamma, beta, mean, variance]
     bn_weights = bn_weights.reshape((4, filters))[[1, 0, 2, 3]]
 
@@ -91,36 +104,51 @@ def yolo_conv2d_set_weights(yolo_conv2d, fd):
     conv.set_weights([conv_weights])
     bn.set_weights(bn_weights)
 
+    return True
+
 
 def res_block_set_weights(model, fd):
     for i in range(model.iteration):
         _res_block = model.sequential.get_layer(index=i)
-        yolo_conv2d_set_weights(_res_block.get_layer(index=0), fd)
-        yolo_conv2d_set_weights(_res_block.get_layer(index=1), fd)
+        if not yolo_conv2d_set_weights(_res_block.get_layer(index=0), fd):
+            return False
+        if not yolo_conv2d_set_weights(_res_block.get_layer(index=1), fd):
+            return False
+
+    return True
 
 
 def csp_res_net_set_weights(model, fd):
-    yolo_conv2d_set_weights(model.get_layer(index=0), fd)
-    yolo_conv2d_set_weights(model.get_layer(index=1), fd)
-    yolo_conv2d_set_weights(model.get_layer(index=2), fd)
-    res_block_set_weights(model.get_layer(index=3), fd)
-    yolo_conv2d_set_weights(model.get_layer(index=4), fd)
-    yolo_conv2d_set_weights(model.get_layer(index=5), fd)
+    for i in range(6):
+        if i == 3:
+            if not res_block_set_weights(model.get_layer(index=3), fd):
+                return False
+        else:
+            if not yolo_conv2d_set_weights(model.get_layer(index=i), fd):
+                return False
+
+    return True
 
 
 def csp_darknet53_set_weights(csp_darknet53, fd):
-    yolo_conv2d_set_weights(csp_darknet53.get_layer(index=0), fd)
+    if not yolo_conv2d_set_weights(csp_darknet53.get_layer(index=0), fd):
+        return False
 
     for i in range(1, 1 + 5):
-        csp_res_net_set_weights(csp_darknet53.get_layer(index=i), fd)
+        if not csp_res_net_set_weights(csp_darknet53.get_layer(index=i), fd):
+            return False
 
     for i in range(6, 6 + 3):
-        yolo_conv2d_set_weights(csp_darknet53.get_layer(index=i), fd)
+        if not yolo_conv2d_set_weights(csp_darknet53.get_layer(index=i), fd):
+            return False
 
     # index 9 is SPP
 
     for i in range(10, 10 + 3):
-        yolo_conv2d_set_weights(csp_darknet53.get_layer(index=i), fd)
+        if not yolo_conv2d_set_weights(csp_darknet53.get_layer(index=i), fd):
+            return False
+
+    return True
 
 
 def read_class_names(class_file_name):
