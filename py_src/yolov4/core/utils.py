@@ -6,7 +6,7 @@ import numpy as np
 
 def load_weights(model, weights_file):
     fd = open(weights_file, "rb")
-    major, minor, revision, seen, _ = np.fromfile(fd, dtype=np.int32, count=5)
+    major, minor, revision, seen, _ = _np_fromfile(fd, dtype=np.int32, count=5)
 
     csp_darknet53 = model.get_layer("csp_darknet53")
 
@@ -26,17 +26,17 @@ def load_weights(model, weights_file):
 
         if i not in [93, 101, 109]:
             # darknet weights: [beta, gamma, mean, variance]
-            bn_weights = np.fromfile(fd, dtype=np.float32, count=4 * filters)
+            bn_weights = _np_fromfile(fd, dtype=np.float32, count=4 * filters)
             # tf weights: [gamma, beta, mean, variance]
             bn_weights = bn_weights.reshape((4, filters))[[1, 0, 2, 3]]
             bn_layer = model.get_layer(bn_layer_name)
             j += 1
         else:
-            conv_bias = np.fromfile(fd, dtype=np.float32, count=filters)
+            conv_bias = _np_fromfile(fd, dtype=np.float32, count=filters)
 
         # darknet shape (out_dim, in_dim, height, width)
         conv_shape = (filters, in_dim, k_size, k_size)
-        conv_weights = np.fromfile(
+        conv_weights = _np_fromfile(
             fd, dtype=np.float32, count=np.product(conv_shape)
         )
         # tf shape (height, width, in_dim, out_dim)
@@ -50,6 +50,16 @@ def load_weights(model, weights_file):
 
     assert len(fd.read()) == 0, "failed to read all data"
     fd.close()
+
+
+def _np_fromfile(fd, dtype, count):
+    data = np.fromfile(fd, dtype=dtype, count=count)
+    if len(data) != count:
+        if len(data) == 0:
+            return None
+        else:
+            raise ValueError("Model and weights file do not match.")
+    return data
 
 
 def yolo_conv2d_set_weights(yolo_conv2d, fd):
@@ -66,13 +76,13 @@ def yolo_conv2d_set_weights(yolo_conv2d, fd):
     in_dim = yolo_conv2d.input_dim
 
     # darknet weights: [beta, gamma, mean, variance]
-    bn_weights = np.fromfile(fd, dtype=np.float32, count=4 * filters)
+    bn_weights = _np_fromfile(fd, dtype=np.float32, count=4 * filters)
     # tf weights: [gamma, beta, mean, variance]
     bn_weights = bn_weights.reshape((4, filters))[[1, 0, 2, 3]]
 
     # darknet shape (out_dim, in_dim, height, width)
     conv_shape = (filters, in_dim, k_size, k_size)
-    conv_weights = np.fromfile(
+    conv_weights = _np_fromfile(
         fd, dtype=np.float32, count=np.product(conv_shape)
     )
     # tf shape (height, width, in_dim, out_dim)
