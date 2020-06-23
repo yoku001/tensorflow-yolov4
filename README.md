@@ -20,14 +20,16 @@ Download yolov4.weights file: https://drive.google.com/open?id=1cewMfusmPjYWbrnu
 ## tensorflow
 
 ```python
-import yolov4.tf as yolo
+from yolov4.tf import YoloV4
 
-detector = yolo.YoloV4(
-    names_path="/home/hhk7734/tensorflow-yolov4/data/classes/coco.names",
-    weights_path="/home/hhk7734/Desktop/yolov4.weights",
-)
+yolo = YoloV4()
 
-detector.inference(
+yolo.classes = "/home/hhk7734/tensorflow-yolov4/data/classes/coco.names"
+
+yolo.make_model()
+yolo.load_weights("/home/hhk7734/Desktop/yolov4.weights", weights_type="yolo")
+
+yolo.inference(
     media_path="/home/hhk7734/tensorflow-yolov4/data/kite.jpg",
     cv_waitKey_delay=1000,
 )
@@ -53,27 +55,31 @@ detector.inference(
 ## Training
 
 ```python
-import yolov4.tf as yolo
+from yolov4.tf import YoloV4
 
-detector = yolo.YoloV4(
-    names_path="/home/hhk7734/tensorflow-yolov4/data/classes/coco.names"
-)
+yolo = YoloV4()
 
-detector.train(
+yolo.classes = "/home/hhk7734/tensorflow-yolov4/data/classes/coco.names"
+
+yolo.make_model(is_training=True)
+yolo.load_weights("/home/hhk7734/Desktop/yolov4.conv.137", weights_type="yolo")
+
+yolo.train(
     train_annote_path="/home/hhk7734/tensorflow-yolov4/data/dataset/val2017.txt",
     test_annote_path="/home/hhk7734/tensorflow-yolov4/data/dataset/val2017.txt",
-    pre_trained_weights="/home/hhk7734/Desktop/yolov4.weights",
 )
 ```
 
 ```python
-import yolov4.tf as yolo
+from yolov4.tf import YoloV4
 
-detector = yolo.YoloV4(
-    names_path="/home/hhk7734/darknet/data/class.names"
-)
+yolo = YoloV4()
 
-detector.train(
+yolo.classes = "/home/hhk7734/darknet/data/class.names"
+
+yolo.make_model(is_training=True)
+
+yolo.train(
     train_annote_path="/home/hhk7734/darknet/data/train.txt",
     test_annote_path="/home/hhk7734/darknet/data/train.txt",
     dataset_type="yolo",
