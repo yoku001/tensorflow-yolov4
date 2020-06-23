@@ -83,11 +83,11 @@ class YoloV4:
             raise TypeError("YoloV4: Set classes path or dictionary")
         self.num_class = len(self._classes)
 
-    def load_weights(self, path: str, weights_type: str = "yolo"):
+    def load_weights(self, path: str, weights_type: str = "tf"):
         """
         Usage:
-            yolo.load_weights("yolov4.weights")
-            yolo.load_weights("checkpoints", weights_type="tf")
+            yolo.load_weights("yolov4.weights", weights_type="yolo")
+            yolo.load_weights("checkpoints")
         """
         if weights_type == "yolo":
             utils.load_weights(self.model, path)
