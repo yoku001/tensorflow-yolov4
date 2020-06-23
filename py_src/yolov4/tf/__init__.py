@@ -22,13 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import time
+import cv2
+import numpy as np
 import os
 import shutil
-
-import numpy as np
-import cv2
 import tensorflow as tf
+import time
+from typing import Union
 
 from ..core import dataset
 from ..core import utils
@@ -64,20 +64,36 @@ class YoloV4:
         self.xyscale = np.array([1.2, 1.1, 1.05])
         self.width = self.height = 608
 
-        self.classes = utils.read_class_names(names_path)
-        self.num_class = len(self.classes)
+        self.classes = names_path
 
         self.make_model()
 
         if weights_path is not None:
             self.load_weights(weights_path)
 
+    @property
+    def classes(self):
+        return self._classes
+
+    @classes.setter
+    def classes(self, data: Union[dict, int]):
+        """
+        Usage:
+            yolo.classes = {0: 'person', 1: 'bicycle', 2: 'car', ...}
+            yolo.classes = "path/classes"
+        """
+        if isinstance(data, str):
+            self._classes = utils.read_class_names(data)
+        elif isinstance(data, dict):
+            self._classes = data
+        self.num_class = len(self._classes)
+
     def inference(self, media_path, is_image=True, cv_waitKey_delay=10):
         if is_image:
             frame = cv2.imread(media_path)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            image = self.predict(frame, self.classes)
+            image = self.predict(frame, self._classes)
 
             cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
             result = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
@@ -93,7 +109,7 @@ class YoloV4:
                     raise ValueError("No image! Try with another video format")
 
                 prev_time = time.time()
-                image = self.predict(frame, self.classes)
+                image = self.predict(frame, self._classes)
                 curr_time = time.time()
                 exec_time = curr_time - prev_time
 
@@ -131,14 +147,14 @@ class YoloV4:
 
         trainset = dataset.Dataset(
             annot_path=train_annote_path,
-            classes=self.classes,
+            classes=self._classes,
             anchors=self.anchors,
             input_sizes=self.width,
             dataset_type=dataset_type,
         )
         testset = dataset.Dataset(
             annot_path=test_annote_path,
-            classes=self.classes,
+            classes=self._classes,
             anchors=self.anchors,
             input_sizes=self.width,
             is_training=False,
