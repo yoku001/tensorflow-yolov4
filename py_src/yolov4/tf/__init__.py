@@ -73,7 +73,7 @@ class YoloV4:
         return self._classes
 
     @classes.setter
-    def classes(self, data: Union[dict, int]):
+    def classes(self, data: Union[str, dict]):
         """
         Usage:
             yolo.classes = {0: 'person', 1: 'bicycle', 2: 'car', ...}
@@ -83,6 +83,8 @@ class YoloV4:
             self._classes = utils.read_class_names(data)
         elif isinstance(data, dict):
             self._classes = data
+        else:
+            raise TypeError("YoloV4: Set classes path or dictionary")
         self.num_class = len(self._classes)
 
     def load_weights(self, path: str, weights_type: str = "yolo"):
