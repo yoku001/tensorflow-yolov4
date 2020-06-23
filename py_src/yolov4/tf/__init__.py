@@ -132,18 +132,17 @@ class YoloV4:
 
     def train(
         self,
-        train_annote_path,
-        test_annote_path,
-        trained_weights_path="./checkpoints",
-        log_dir_path="./log",
-        iou_loss_threshold=0.5,
+        train_annote_path: str,
+        test_annote_path: str,
         dataset_type: str = "converted_coco",
         epochs: int = 50,
+        iou_loss_threshold: float = 0.5,
+        learning_rate_init: float = 1e-3,
+        learning_rate_end: float = 1e-6,
+        log_dir_path: str = "./log",
         save_interval: int = 1,
+        trained_weights_path: str = "./checkpoints",
     ):
-
-        learning_rate_init = 1e-3
-        learning_rate_end = 1e-6
 
         gpus = tf.config.experimental.list_physical_devices("GPU")
         if gpus:
