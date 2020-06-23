@@ -395,13 +395,21 @@ class YoloV4:
             if epoch < first_stage_epochs:
                 if not isfreeze:
                     isfreeze = True
-                    for name in ["conv2d_93", "conv2d_101", "conv2d_109"]:
+                    for name in [
+                        "yolo_conv2d_93",
+                        "yolo_conv2d_101",
+                        "yolo_conv2d_109",
+                    ]:
                         freeze = self.model.get_layer(name)
                         utils.freeze_all(freeze)
             elif epoch >= first_stage_epochs:
                 if isfreeze:
                     isfreeze = False
-                    for name in ["conv2d_93", "conv2d_101", "conv2d_109"]:
+                    for name in [
+                        "yolo_conv2d_93",
+                        "yolo_conv2d_101",
+                        "yolo_conv2d_109",
+                    ]:
                         freeze = self.model.get_layer(name)
                         utils.unfreeze_all(freeze)
 
