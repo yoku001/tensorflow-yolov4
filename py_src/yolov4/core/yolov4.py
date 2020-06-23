@@ -1,74 +1,222 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import layers
+from tensorflow.keras import Model, layers
 from . import utils
 from . import common
-from . import backbone
+from .common import YOLOConv2D
+from .backbone import CSPDarknet53
 
 
-def YOLOv4(input_layer, num_class):
-    route_1, route_2, conv = backbone.CSPDarknet53()(input_layer)
+class YOLOv4(Model):
+    def __init__(
+        self,
+        anchors: np.ndarray,
+        num_classes: int,
+        strides: np.ndarray,
+        xyscale: np.ndarray,
+        **k
+    ):
+        super(YOLOv4, self).__init__()
+        self.anchors = anchors
+        self.num_classes = num_classes
+        self.strides = strides
+        self.xyscale = xyscale
 
-    route = conv
-    conv = common.convolutional(conv, (1, 1, 512, 256))
-    conv = layers.UpSampling2D()(conv)
-    route_2 = common.convolutional(route_2, (1, 1, 512, 256))
-    conv = tf.concat([route_2, conv], axis=-1)
+        self.csp_darknet53 = CSPDarknet53()
 
-    conv = common.convolutional(conv, (1, 1, 512, 256))
-    conv = common.convolutional(conv, (3, 3, 256, 512))
-    conv = common.convolutional(conv, (1, 1, 512, 256))
-    conv = common.convolutional(conv, (3, 3, 256, 512))
-    conv = common.convolutional(conv, (1, 1, 512, 256))
+        self.conv78 = YOLOConv2D(
+            filters=256, kernel_size=1, strides=1, activation="leaky"
+        )
+        self.upSampling78 = layers.UpSampling2D()
+        self.conv79 = YOLOConv2D(
+            filters=256, kernel_size=1, strides=1, activation="leaky"
+        )
+        self.concat78_79 = layers.Concatenate(axis=-1)
 
-    route_2 = conv
-    conv = common.convolutional(conv, (1, 1, 256, 128))
-    conv = layers.UpSampling2D()(conv)
-    route_1 = common.convolutional(route_1, (1, 1, 256, 128))
-    conv = tf.concat([route_1, conv], axis=-1)
+        self.conv80 = YOLOConv2D(
+            filters=256, kernel_size=1, strides=1, activation="leaky"
+        )
+        self.conv81 = YOLOConv2D(
+            filters=512, kernel_size=3, strides=1, activation="leaky"
+        )
+        self.conv82 = YOLOConv2D(
+            filters=256, kernel_size=1, strides=1, activation="leaky"
+        )
+        self.conv83 = YOLOConv2D(
+            filters=512, kernel_size=3, strides=1, activation="leaky"
+        )
+        self.conv84 = YOLOConv2D(
+            filters=256, kernel_size=1, strides=1, activation="leaky"
+        )
 
-    conv = common.convolutional(conv, (1, 1, 256, 128))
-    conv = common.convolutional(conv, (3, 3, 128, 256))
-    conv = common.convolutional(conv, (1, 1, 256, 128))
-    conv = common.convolutional(conv, (3, 3, 128, 256))
-    conv = common.convolutional(conv, (1, 1, 256, 128))
+        self.conv85 = YOLOConv2D(
+            filters=128, kernel_size=1, strides=1, activation="leaky"
+        )
+        self.upSampling85 = layers.UpSampling2D()
+        self.conv86 = YOLOConv2D(
+            filters=128, kernel_size=1, strides=1, activation="leaky"
+        )
+        self.concat85_86 = layers.Concatenate(axis=-1)
 
-    route_1 = conv
-    conv = common.convolutional(conv, (3, 3, 128, 256))
-    conv_sbbox = common.convolutional(
-        conv, (1, 1, 256, 3 * (num_class + 5)), activate=False, bn=False
-    )
+        self.conv87 = YOLOConv2D(
+            filters=128, kernel_size=1, strides=1, activation="leaky"
+        )
+        self.conv88 = YOLOConv2D(
+            filters=256, kernel_size=3, strides=1, activation="leaky"
+        )
+        self.conv89 = YOLOConv2D(
+            filters=128, kernel_size=1, strides=1, activation="leaky"
+        )
+        self.conv90 = YOLOConv2D(
+            filters=256, kernel_size=3, strides=1, activation="leaky"
+        )
+        self.conv91 = YOLOConv2D(
+            filters=128, kernel_size=1, strides=1, activation="leaky"
+        )
 
-    conv = common.convolutional(route_1, (3, 3, 128, 256), downsample=True)
-    conv = tf.concat([conv, route_2], axis=-1)
+        self.conv92 = YOLOConv2D(
+            filters=256, kernel_size=3, strides=1, activation="leaky"
+        )
+        self.conv93 = YOLOConv2D(
+            filters=3 * (self.num_classes + 5),
+            kernel_size=1,
+            strides=1,
+            activation=None,
+        )
 
-    conv = common.convolutional(conv, (1, 1, 512, 256))
-    conv = common.convolutional(conv, (3, 3, 256, 512))
-    conv = common.convolutional(conv, (1, 1, 512, 256))
-    conv = common.convolutional(conv, (3, 3, 256, 512))
-    conv = common.convolutional(conv, (1, 1, 512, 256))
+        self.conv94 = YOLOConv2D(
+            filters=256, kernel_size=3, strides=2, activation="leaky"
+        )
+        self.concat84_94 = layers.Concatenate(axis=-1)
 
-    route_2 = conv
-    conv = common.convolutional(conv, (3, 3, 256, 512))
-    conv_mbbox = common.convolutional(
-        conv, (1, 1, 512, 3 * (num_class + 5)), activate=False, bn=False
-    )
+        self.conv95 = YOLOConv2D(
+            filters=256, kernel_size=1, strides=1, activation="leaky"
+        )
+        self.conv96 = YOLOConv2D(
+            filters=512, kernel_size=3, strides=1, activation="leaky"
+        )
+        self.conv97 = YOLOConv2D(
+            filters=256, kernel_size=1, strides=1, activation="leaky"
+        )
+        self.conv98 = YOLOConv2D(
+            filters=512, kernel_size=3, strides=1, activation="leaky"
+        )
+        self.conv99 = YOLOConv2D(
+            filters=256, kernel_size=1, strides=1, activation="leaky"
+        )
 
-    conv = common.convolutional(route_2, (3, 3, 256, 512), downsample=True)
-    conv = tf.concat([conv, route], axis=-1)
+        self.conv100 = YOLOConv2D(
+            filters=512, kernel_size=3, strides=1, activation="leaky"
+        )
+        self.conv101 = YOLOConv2D(
+            filters=3 * (self.num_classes + 5),
+            kernel_size=1,
+            strides=1,
+            activation=None,
+        )
 
-    conv = common.convolutional(conv, (1, 1, 1024, 512))
-    conv = common.convolutional(conv, (3, 3, 512, 1024))
-    conv = common.convolutional(conv, (1, 1, 1024, 512))
-    conv = common.convolutional(conv, (3, 3, 512, 1024))
-    conv = common.convolutional(conv, (1, 1, 1024, 512))
+        self.conv102 = YOLOConv2D(
+            filters=512, kernel_size=3, strides=2, activation="leaky"
+        )
+        self.concat77_102 = layers.Concatenate(axis=-1)
 
-    conv = common.convolutional(conv, (3, 3, 512, 1024))
-    conv_lbbox = common.convolutional(
-        conv, (1, 1, 1024, 3 * (num_class + 5)), activate=False, bn=False
-    )
+        self.conv103 = YOLOConv2D(
+            filters=512, kernel_size=1, strides=1, activation="leaky"
+        )
+        self.conv104 = YOLOConv2D(
+            filters=1024, kernel_size=3, strides=1, activation="leaky"
+        )
+        self.conv105 = YOLOConv2D(
+            filters=512, kernel_size=1, strides=1, activation="leaky"
+        )
+        self.conv106 = YOLOConv2D(
+            filters=1024, kernel_size=3, strides=1, activation="leaky"
+        )
+        self.conv107 = YOLOConv2D(
+            filters=512, kernel_size=1, strides=1, activation="leaky"
+        )
 
-    return [conv_sbbox, conv_mbbox, conv_lbbox]
+        self.conv108 = YOLOConv2D(
+            filters=1024, kernel_size=3, strides=1, activation="leaky"
+        )
+        self.conv109 = YOLOConv2D(
+            filters=3 * (self.num_classes + 5),
+            kernel_size=1,
+            strides=1,
+            activation=None,
+        )
+
+    def call(self, x, training: bool = False):
+        route1, route2, route3 = self.csp_darknet53(x)
+
+        x1 = self.conv78(route3)
+        part2 = self.upSampling78(x1)
+        part1 = self.conv79(route2)
+        x1 = self.concat78_79([part1, part2])
+
+        x1 = self.conv80(x1)
+        x1 = self.conv81(x1)
+        x1 = self.conv82(x1)
+        x1 = self.conv83(x1)
+        x1 = self.conv84(x1)
+
+        x2 = self.conv85(x1)
+        part2 = self.upSampling85(x2)
+        part1 = self.conv86(route1)
+        x2 = self.concat85_86([part1, part2])
+
+        x2 = self.conv87(x2)
+        x2 = self.conv88(x2)
+        x2 = self.conv89(x2)
+        x2 = self.conv90(x2)
+        x2 = self.conv91(x2)
+
+        sbbox = self.conv92(x2)
+        sbbox = self.conv93(sbbox)
+
+        x2 = self.conv94(x2)
+        x2 = self.concat84_94([x2, x1])
+
+        x2 = self.conv95(x2)
+        x2 = self.conv96(x2)
+        x2 = self.conv97(x2)
+        x2 = self.conv98(x2)
+        x2 = self.conv99(x2)
+
+        mbbox = self.conv100(x2)
+        mbbox = self.conv101(mbbox)
+
+        x2 = self.conv102(x2)
+        x2 = self.concat77_102([x2, route3])
+
+        x2 = self.conv103(x2)
+        x2 = self.conv104(x2)
+        x2 = self.conv105(x2)
+        x2 = self.conv106(x2)
+        x2 = self.conv107(x2)
+
+        lbbox = self.conv108(x2)
+        lbbox = self.conv109(lbbox)
+
+        bboxes = []
+        for i, fm in enumerate([sbbox, mbbox, lbbox]):
+            if training:
+                bbox = decode_train(
+                    fm,
+                    self.num_classes,
+                    self.strides,
+                    self.anchors,
+                    i,
+                    self.xyscale,
+                )
+                bboxes.append(fm)
+
+            else:
+                bbox = decode(fm, self.num_classes, i)
+
+            bboxes.append(bbox)
+
+        return bboxes
 
 
 def decode(conv_output, num_class, i=0):
