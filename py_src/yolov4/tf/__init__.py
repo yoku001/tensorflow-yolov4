@@ -141,34 +141,17 @@ class YoloV4:
         elif isinstance(xyscale, np.ndarray):
             self._xyscale = xyscale
 
-    def make_model(self, is_training=False):
+    def make_model(self):
         self._has_weights = False
         tf.keras.backend.clear_session()
-        # [height, width, channel]
-        input_layer = tf.keras.layers.Input(
-            [self.input_size, self.input_size, 3]
+        self.model = yolov4.YOLOv4(
+            anchors=self.anchors,
+            num_classes=len(self.classes),
+            strides=self.strides,
+            xyscale=self.xyscale,
         )
-        feature_maps = yolov4.YOLOv4(input_layer, len(self.classes))
-
-        bbox_tensors = []
-        for i, fm in enumerate(feature_maps):
-            if is_training:
-                bbox_tensor = yolov4.decode_train(
-                    fm,
-                    len(self.classes),
-                    self.strides,
-                    self.anchors,
-                    i,
-                    self.xyscale,
-                )
-                bbox_tensors.append(fm)
-
-            else:
-                bbox_tensor = yolov4.decode(fm, len(self.classes), i)
-
-            bbox_tensors.append(bbox_tensor)
-
-        self.model = tf.keras.Model(input_layer, bbox_tensors)
+        # [height, width, channel]
+        self.model(tf.keras.layers.Input([self.input_size, self.input_size, 3]))
 
     def load_weights(self, path: str, weights_type: str = "tf"):
         """
