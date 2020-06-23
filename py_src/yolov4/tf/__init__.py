@@ -61,23 +61,26 @@ class YoloV4:
             401,
         ]
         self._classes = None
+        self._has_weights = False
         self.input_size = 608
+        self.model = None
         self.strides = [8, 16, 32]
         self.xyscale = [1.2, 1.1, 1.05]
 
     @property
     def anchors(self):
-        return self._anchors
-
-    @anchors.setter
-    def anchors(self, anchors: Union[list, tuple, np.ndarray]):
         """
         Usage:
             yolo.anchors = [12, 16, 19, 36, 40, 28, 36, 75,
                             76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
             yolo.anchors = np.array([12, 16, 19, 36, 40, 28, 36, 75,
                             76, 55, 72, 146, 142, 110, 192, 243, 459, 401])
+            print(yolo.anchors)
         """
+        return self._anchors
+
+    @anchors.setter
+    def anchors(self, anchors: Union[list, tuple, np.ndarray]):
         if isinstance(anchors, (list, tuple)):
             self._anchors = np.array(anchors)
         elif isinstance(anchors, np.ndarray):
@@ -87,15 +90,16 @@ class YoloV4:
 
     @property
     def classes(self):
-        return self._classes
-
-    @classes.setter
-    def classes(self, data: Union[str, dict]):
         """
         Usage:
             yolo.classes = {0: 'person', 1: 'bicycle', 2: 'car', ...}
             yolo.classes = "path/classes"
+            print(len(yolo.classes))
         """
+        return self._classes
+
+    @classes.setter
+    def classes(self, data: Union[str, dict]):
         if isinstance(data, str):
             self._classes = utils.read_class_names(data)
         elif isinstance(data, dict):
@@ -105,15 +109,16 @@ class YoloV4:
 
     @property
     def strides(self):
-        return self._strides
-
-    @strides.setter
-    def strides(self, strides: Union[list, tuple, np.ndarray]):
         """
         Usage:
             yolo.strides = [8, 16, 32]
             yolo.strides = np.array([8, 16, 32])
+            print(yolo.strides)
         """
+        return self._strides
+
+    @strides.setter
+    def strides(self, strides: Union[list, tuple, np.ndarray]):
         if isinstance(strides, (list, tuple)):
             self._strides = np.array(strides)
         elif isinstance(strides, np.ndarray):
@@ -121,15 +126,16 @@ class YoloV4:
 
     @property
     def xyscale(self):
-        return self._xyscale
-
-    @xyscale.setter
-    def xyscale(self, xyscale: Union[list, tuple, np.ndarray]):
         """
         Usage:
             yolo.xyscale = [1.2, 1.1, 1.05]
             yolo.xyscale = np.array([1.2, 1.1, 1.05])
+            print(yolo.xyscale)
         """
+        return self._xyscale
+
+    @xyscale.setter
+    def xyscale(self, xyscale: Union[list, tuple, np.ndarray]):
         if isinstance(xyscale, (list, tuple)):
             self._xyscale = np.array(xyscale)
         elif isinstance(xyscale, np.ndarray):
@@ -153,7 +159,7 @@ class YoloV4:
             frame = cv2.imread(media_path)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            image = self.predict(frame, self._classes)
+            image = self.predict(frame, self.classes)
 
             cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
             result = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
@@ -169,7 +175,7 @@ class YoloV4:
                     raise ValueError("No image! Try with another video format")
 
                 prev_time = time.time()
-                image = self.predict(frame, self._classes)
+                image = self.predict(frame, self.classes)
                 curr_time = time.time()
                 exec_time = curr_time - prev_time
 
@@ -205,14 +211,14 @@ class YoloV4:
 
         trainset = dataset.Dataset(
             annot_path=train_annote_path,
-            classes=self._classes,
+            classes=self.classes,
             anchors=self.anchors,
             input_sizes=self.input_size,
             dataset_type=dataset_type,
         )
         testset = dataset.Dataset(
             annot_path=test_annote_path,
-            classes=self._classes,
+            classes=self.classes,
             anchors=self.anchors,
             input_sizes=self.input_size,
             is_training=False,
