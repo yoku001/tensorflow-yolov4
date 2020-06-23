@@ -36,7 +36,7 @@ from ..core import yolov4
 
 
 class YoloV4:
-    def __init__(self, names_path):
+    def __init__(self):
         self.strides = np.array([8, 16, 32])
         self.anchors = np.array(
             [
@@ -63,10 +63,6 @@ class YoloV4:
         ).reshape(3, 3, 2)
         self.xyscale = np.array([1.2, 1.1, 1.05])
         self.width = self.height = 608
-
-        self.classes = names_path
-
-        self.make_model()
 
     @property
     def classes(self):
@@ -97,6 +93,8 @@ class YoloV4:
             utils.load_weights(self.model, path)
         elif weights_type == "tf":
             self.model.load_weights(path).expect_partial()
+
+        self._has_weights = True
 
     def inference(self, media_path, is_image=True, cv_waitKey_delay=10):
         if is_image:
@@ -172,8 +170,6 @@ class YoloV4:
         )
 
         isfreeze = False
-
-        self.make_model(True)
 
         if pre_trained_weights is not None:
             self.load_weights(pre_trained_weights)
@@ -333,6 +329,7 @@ class YoloV4:
         self.model.save_weights(trained_weights_path)
 
     def make_model(self, is_training=False):
+        self._has_weights = False
         tf.keras.backend.clear_session()
         input_layer = tf.keras.layers.Input([self.height, self.width, 3])
         feature_maps = yolov4.YOLOv4(input_layer, self.num_class)
