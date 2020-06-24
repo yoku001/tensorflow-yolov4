@@ -179,15 +179,21 @@ class YOLOv4:
         )
         bboxes = utils.nms(bboxes, 0.213, method="nms")
 
-        return utils.draw_bbox(frame, bboxes, self.classes)
+        return bboxes
 
     def inference(self, media_path, is_image=True, cv_waitKey_delay=10):
         if is_image:
             frame = cv2.imread(media_path)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            image = self.predict(frame)
+            prev_time = time.time()
+            bboxes = self.predict(frame)
+            curr_time = time.time()
+            exec_time = curr_time - prev_time
+            info = "time: %.2f ms" % (1000 * exec_time)
+            print(info)
 
+            image = utils.draw_bbox(frame, bboxes, self.classes)
             cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
             result = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             cv2.imshow("result", result)
@@ -202,13 +208,13 @@ class YOLOv4:
                     raise ValueError("No image! Try with another video format")
 
                 prev_time = time.time()
-                image = self.predict(frame)
+                bboxes = self.predict(frame)
                 curr_time = time.time()
                 exec_time = curr_time - prev_time
-
-                result = np.asarray(image)
                 info = "time: %.2f ms" % (1000 * exec_time)
                 print(info)
+
+                image = utils.draw_bbox(frame, bboxes, self.classes)
                 cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
                 result = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
                 cv2.imshow("result", result)
