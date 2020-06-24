@@ -141,20 +141,12 @@ class YOLOv4:
         elif isinstance(xyscales, np.ndarray):
             self._xyscales = xyscales
 
-    def make_model(self, training: bool = False):
+    def make_model(self):
         self._has_weights = False
         tf.keras.backend.clear_session()
-        self.model = yolov4.YOLOv4(
-            anchors=self.anchors,
-            num_classes=len(self.classes),
-            strides=self.strides,
-            xyscales=self.xyscales,
-        )
-        # [height, width, channel]
-        self.model(
-            tf.keras.layers.Input([self.input_size, self.input_size, 3]),
-            training=training,
-        )
+        self.model = yolov4.YOLOv4(num_classes=len(self.classes))
+        # [batch, height, width, channel]
+        self.model(tf.keras.layers.Input([self.input_size, self.input_size, 3]))
 
     def load_weights(self, path: str, weights_type: str = "tf"):
         """
