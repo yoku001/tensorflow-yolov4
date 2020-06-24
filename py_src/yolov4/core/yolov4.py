@@ -8,6 +8,12 @@ from .backbone import CSPDarknet53
 
 
 class YOLOv4(Model):
+    """
+    Path Aggregation Network(PAN)
+    Spatial Attention Module(SAM)
+    Bounding Box(BBox)
+    """
+
     def __init__(
         self,
         anchors: np.ndarray,
@@ -122,8 +128,9 @@ class YOLOv4(Model):
         x2 = self.conv90(x2)
         x2 = self.conv91(x2)
 
-        sbbox = self.conv92(x2)
-        sbbox = self.conv93(sbbox)
+        s_bboxes = self.conv92(x2)
+        # (batch, 3x, 3x, 3 * (4 + 1 + num_classes))
+        s_bboxes = self.conv93(s_bboxes)
 
         x2 = self.conv94(x2)
         x2 = self.concat84_94([x2, x1])
@@ -134,8 +141,9 @@ class YOLOv4(Model):
         x2 = self.conv98(x2)
         x2 = self.conv99(x2)
 
-        mbbox = self.conv100(x2)
-        mbbox = self.conv101(mbbox)
+        m_bboxes = self.conv100(x2)
+        # (batch, 2x, 2x, 3 * (4 + 1 + num_classes))
+        m_bboxes = self.conv101(m_bboxes)
 
         x2 = self.conv102(x2)
         x2 = self.concat77_102([x2, route3])
@@ -146,11 +154,17 @@ class YOLOv4(Model):
         x2 = self.conv106(x2)
         x2 = self.conv107(x2)
 
-        lbbox = self.conv108(x2)
-        lbbox = self.conv109(lbbox)
+        l_bboxes = self.conv108(x2)
+        # (batch, x, x, 3 * (4 + 1 + num_classes))
+        l_bboxes = self.conv109(l_bboxes)
 
+        """
+        (batch, *grid(x, x), num_anchors, (xywh + score + num_classes))
+        Each grid cell has anchors.
+        Each anchor has (x, y, w, h, score, c0, c1, c2, ...)
+        """
         bboxes = []
-        for i, fm in enumerate([sbbox, mbbox, lbbox]):
+        for i, fm in enumerate([s_bboxes, m_bboxes, l_bboxes]):
             if training:
                 bbox = decode_train(
                     fm,
@@ -171,10 +185,6 @@ class YOLOv4(Model):
 
 
 def decode(conv_output, num_class, i=0):
-    """
-    return tensor of shape [batch_size, output_size, output_size, anchor_per_scale, 5 + num_classes]
-            contains (x, y, w, h, score, probability)
-    """
     conv_shape = tf.shape(conv_output)
     batch_size = conv_shape[0]
     output_size = conv_shape[1]
@@ -188,7 +198,6 @@ def decode(conv_output, num_class, i=0):
 
     pred_conf = tf.sigmoid(conv_raw_conf)
     pred_prob = tf.sigmoid(conv_raw_prob)
-
     return tf.concat([conv_raw_xywh, pred_conf, pred_prob], axis=-1)
 
 
@@ -214,11 +223,7 @@ def decode_train(
         tf.expand_dims(tf.range(output_size, dtype=tf.int32), axis=1),
         [1, output_size],
     )
-    xy_grid = tf.expand_dims(
-        tf.stack([x, y], axis=-1), axis=2
-    )  # [gx, gy, 1, 2]
-    # xy_grid = np.meshgrid(np.arange(output_size), np.arange(output_size))
-    # xy_grid = np.expand_dims(np.stack(xy_grid, axis=-1), axis=2)  # [gx, gy, 1, 2]
+    xy_grid = tf.expand_dims(tf.stack([x, y], axis=-1), axis=2)
 
     xy_grid = tf.tile(tf.expand_dims(xy_grid, axis=0), [batch_size, 1, 1, 3, 1])
     xy_grid = tf.cast(xy_grid, tf.float32)

@@ -57,6 +57,10 @@ class ResBlock(Model):
 
 
 class CSPResNet(Model):
+    """
+    Cross Stage Partial connections(CSP)
+    """
+
     def __init__(self, filters_1: int, filters_2: int, iteration: int):
         super(CSPResNet, self).__init__()
         self.pre_conv = YOLOConv2D(filters=filters_1, kernel_size=3, strides=2)
@@ -88,6 +92,10 @@ class CSPResNet(Model):
 
 
 class SPP(Model):
+    """
+    Spatial Pyramid Pooling layer(SPP)
+    """
+
     def __init__(self):
         super(SPP, self).__init__()
         self.pool1 = tf.keras.layers.MaxPooling2D(
@@ -105,10 +113,6 @@ class SPP(Model):
 
 
 class CSPDarknet53(Model):
-    """
-    conv2d(_0) ~ conv2d_77
-    """
-
     def __init__(self):
         super(CSPDarknet53, self).__init__()
         self.conv0 = YOLOConv2D(filters=32, kernel_size=3)
