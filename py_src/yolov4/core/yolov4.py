@@ -7,6 +7,38 @@ from .common import YOLOConv2D
 from .backbone import CSPDarknet53
 
 
+class Decode(Model):
+    def __init__(self, num_classes: int):
+        super(Decode, self).__init__()
+        self.num_classes = num_classes
+
+        self.reshape = layers.Reshape((-1,))
+        self.concatenate = layers.Concatenate(axis=-1)
+
+    def build(self, input_shape):
+        self.reshape.target_shape = (
+            input_shape[1],
+            input_shape[1],
+            3,
+            5 + self.num_classes,
+        )
+
+    def call(self, x, training: bool = False):
+        x = self.reshape(x)
+        dxdy, wh, score, classes = tf.split(
+            x, (2, 2, 1, self.num_classes), axis=-1
+        )
+
+        dxdy = tf.keras.activations.sigmoid(dxdy)
+
+        if not training:
+            score = tf.keras.activations.sigmoid(score)
+            classes = tf.keras.activations.sigmoid(classes)
+
+        x = self.concatenate([dxdy, wh, score, classes])
+        return x
+
+
 class YOLOv4(Model):
     """
     Path Aggregation Network(PAN)
@@ -14,20 +46,8 @@ class YOLOv4(Model):
     Bounding Box(BBox)
     """
 
-    def __init__(
-        self,
-        anchors: np.ndarray,
-        num_classes: int,
-        strides: np.ndarray,
-        xyscale: np.ndarray,
-        **k
-    ):
+    def __init__(self, num_classes: int):
         super(YOLOv4, self).__init__()
-        self.anchors = anchors
-        self.num_classes = num_classes
-        self.strides = strides
-        self.xyscale = xyscale
-
         self.csp_darknet53 = CSPDarknet53()
 
         self.conv78 = YOLOConv2D(filters=256, kernel_size=1, activation="leaky")
@@ -54,8 +74,9 @@ class YOLOv4(Model):
 
         self.conv92 = YOLOConv2D(filters=256, kernel_size=3, activation="leaky")
         self.conv93 = YOLOConv2D(
-            filters=3 * (self.num_classes + 5), kernel_size=1, activation=None,
+            filters=3 * (num_classes + 5), kernel_size=1, activation=None,
         )
+        self.decode93 = Decode(num_classes=num_classes)
 
         self.conv94 = YOLOConv2D(
             filters=256, kernel_size=3, strides=2, activation="leaky"
@@ -72,8 +93,9 @@ class YOLOv4(Model):
             filters=512, kernel_size=3, activation="leaky"
         )
         self.conv101 = YOLOConv2D(
-            filters=3 * (self.num_classes + 5), kernel_size=1, activation=None,
+            filters=3 * (num_classes + 5), kernel_size=1, activation=None,
         )
+        self.decode101 = Decode(num_classes=num_classes)
 
         self.conv102 = YOLOConv2D(
             filters=512, kernel_size=3, strides=2, activation="leaky"
@@ -100,8 +122,9 @@ class YOLOv4(Model):
             filters=1024, kernel_size=3, activation="leaky"
         )
         self.conv109 = YOLOConv2D(
-            filters=3 * (self.num_classes + 5), kernel_size=1, activation=None,
+            filters=3 * (num_classes + 5), kernel_size=1, activation=None,
         )
+        self.decode109 = Decode(num_classes=num_classes)
 
     def call(self, x, training: bool = False):
         route1, route2, route3 = self.csp_darknet53(x)
@@ -129,8 +152,9 @@ class YOLOv4(Model):
         x2 = self.conv91(x2)
 
         s_bboxes = self.conv92(x2)
-        # (batch, 3x, 3x, 3 * (4 + 1 + num_classes))
         s_bboxes = self.conv93(s_bboxes)
+        # (batch, 3x, 3x, 3, (4 + 1 + num_classes))
+        s_bboxes = self.decode93(s_bboxes, training)
 
         x2 = self.conv94(x2)
         x2 = self.concat84_94([x2, x1])
@@ -142,8 +166,9 @@ class YOLOv4(Model):
         x2 = self.conv99(x2)
 
         m_bboxes = self.conv100(x2)
-        # (batch, 2x, 2x, 3 * (4 + 1 + num_classes))
         m_bboxes = self.conv101(m_bboxes)
+        # (batch, 2x, 2x, 3, (4 + 1 + num_classes))
+        m_bboxes = self.decode101(m_bboxes, training)
 
         x2 = self.conv102(x2)
         x2 = self.concat77_102([x2, route3])
@@ -155,50 +180,19 @@ class YOLOv4(Model):
         x2 = self.conv107(x2)
 
         l_bboxes = self.conv108(x2)
-        # (batch, x, x, 3 * (4 + 1 + num_classes))
         l_bboxes = self.conv109(l_bboxes)
+        # (batch, x, x, 3, (4 + 1 + num_classes))
+        l_bboxes = self.decode109(l_bboxes, training)
 
         """
-        (batch, *grid(x, x), num_anchors, (xywh + score + num_classes))
+        (batch, *grid(x, x), num_anchors, (dxdy + wh + score + num_classes))
         Each grid cell has anchors.
         Each anchor has (x, y, w, h, score, c0, c1, c2, ...)
+
+        inference: sig(x), sig(y), w, h, sig(s), sig(c0), ...
+        training:  sig(x), sig(y), w, h, s,      c0,      ...
         """
-        bboxes = []
-        for i, fm in enumerate([s_bboxes, m_bboxes, l_bboxes]):
-            if training:
-                bbox = decode_train(
-                    fm,
-                    self.num_classes,
-                    self.strides,
-                    self.anchors,
-                    i,
-                    self.xyscale,
-                )
-                bboxes.append(fm)
-
-            else:
-                bbox = decode(fm, self.num_classes, i)
-
-            bboxes.append(bbox)
-
-        return bboxes
-
-
-def decode(conv_output, num_class, i=0):
-    conv_shape = tf.shape(conv_output)
-    batch_size = conv_shape[0]
-    output_size = conv_shape[1]
-
-    conv_output = tf.reshape(
-        conv_output, (batch_size, output_size, output_size, 3, 5 + num_class)
-    )
-    conv_raw_xywh, conv_raw_conf, conv_raw_prob = tf.split(
-        conv_output, (4, 1, num_class), axis=-1
-    )
-
-    pred_conf = tf.sigmoid(conv_raw_conf)
-    pred_prob = tf.sigmoid(conv_raw_prob)
-    return tf.concat([conv_raw_xywh, pred_conf, pred_prob], axis=-1)
+        return [s_bboxes, m_bboxes, l_bboxes]
 
 
 def decode_train(
@@ -227,13 +221,23 @@ def decode_train(
 
     xy_grid = tf.tile(tf.expand_dims(xy_grid, axis=0), [batch_size, 1, 1, 3, 1])
     xy_grid = tf.cast(xy_grid, tf.float32)
+    """
+    top_left
+    [0, 0], [1, 0], [2, 0], ...
+    [0, 1], [1, 1], [2, 1], ...
+    """
 
+    """
+    dxdy = (-0.5 ~ 0.5) * scale + 0.5
+    x = dxdy + top_left
+    x = x * grid_size
+    """
     pred_xy = (
-        (tf.sigmoid(conv_raw_dxdy) * xyscale[i])
-        - 0.5 * (xyscale[i] - 1)
-        + xy_grid
+        ((tf.sigmoid(conv_raw_dxdy) - 0.5) * xyscale[i]) + 0.5 + xy_grid
     ) * strides[i]
+
     pred_wh = tf.exp(conv_raw_dwdh) * anchors[i]
+
     pred_xywh = tf.concat([pred_xy, pred_wh], axis=-1)
 
     pred_conf = tf.sigmoid(conv_raw_conf)
