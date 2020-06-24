@@ -350,9 +350,7 @@ def postprocess_bbbox(pred_bbox, anchors, strides, xyscale=[1, 1, 1]):
         xy_grid = xy_grid.astype(np.float)
 
         pred_xy = (
-            ((1 / (1 + np.exp(-conv_raw_dxdy))) * xyscale[i])
-            - 0.5 * (xyscale[i] - 1)
-            + xy_grid
+            ((conv_raw_dxdy - 0.5) * xyscale[i]) + 0.5 + xy_grid
         ) * strides[i]
 
         pred_wh = np.exp(conv_raw_dwdh) * anchors[i]
