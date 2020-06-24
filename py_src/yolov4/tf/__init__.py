@@ -65,7 +65,7 @@ class YOLOv4:
         self.input_size = 608
         self.model = None
         self.strides = [8, 16, 32]
-        self.xyscale = [1.2, 1.1, 1.05]
+        self.xyscales = [1.2, 1.1, 1.05]
 
     @property
     def anchors(self):
@@ -125,33 +125,36 @@ class YOLOv4:
             self._strides = strides
 
     @property
-    def xyscale(self):
+    def xyscales(self):
         """
         Usage:
-            yolo.xyscale = [1.2, 1.1, 1.05]
-            yolo.xyscale = np.array([1.2, 1.1, 1.05])
-            print(yolo.xyscale)
+            yolo.xyscales = [1.2, 1.1, 1.05]
+            yolo.xyscales = np.array([1.2, 1.1, 1.05])
+            print(yolo.xyscales)
         """
-        return self._xyscale
+        return self._xyscales
 
-    @xyscale.setter
-    def xyscale(self, xyscale: Union[list, tuple, np.ndarray]):
-        if isinstance(xyscale, (list, tuple)):
-            self._xyscale = np.array(xyscale)
-        elif isinstance(xyscale, np.ndarray):
-            self._xyscale = xyscale
+    @xyscales.setter
+    def xyscales(self, xyscales: Union[list, tuple, np.ndarray]):
+        if isinstance(xyscales, (list, tuple)):
+            self._xyscales = np.array(xyscales)
+        elif isinstance(xyscales, np.ndarray):
+            self._xyscales = xyscales
 
-    def make_model(self):
+    def make_model(self, training: bool = False):
         self._has_weights = False
         tf.keras.backend.clear_session()
         self.model = yolov4.YOLOv4(
             anchors=self.anchors,
             num_classes=len(self.classes),
             strides=self.strides,
-            xyscale=self.xyscale,
+            xyscales=self.xyscales,
         )
         # [height, width, channel]
-        self.model(tf.keras.layers.Input([self.input_size, self.input_size, 3]))
+        self.model(
+            tf.keras.layers.Input([self.input_size, self.input_size, 3]),
+            training=training,
+        )
 
     def load_weights(self, path: str, weights_type: str = "tf"):
         """
@@ -177,7 +180,7 @@ class YOLOv4:
         pred_bbox = self.model.predict(image_data)
 
         pred_bbox = utils.postprocess_bbbox(
-            pred_bbox, self.anchors, self.strides, self.xyscale
+            pred_bbox, self.anchors, self.strides, self.xyscales
         )
         bboxes = utils.postprocess_boxes(
             pred_bbox, frame_size, self.input_size, 0.25
