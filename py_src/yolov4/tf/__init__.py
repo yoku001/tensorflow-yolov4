@@ -272,14 +272,48 @@ class YOLOv4:
             shutil.rmtree(log_dir_path)
         writer = tf.summary.create_file_writer(log_dir_path)
 
+        def decode_train(bboxes, index: int):
+            conv_shape = tf.shape(bboxes)
+            batch_size = conv_shape[0]
+            output_size = conv_shape[1]
+
+            (dxdy, wh, raw_score, raw_classes) = tf.split(
+                bboxes, (2, 2, 1, len(self.classes)), axis=-1
+            )
+
+            grid = np.meshgrid(np.arange(output_size), np.arange(output_size))
+            grid = np.expand_dims(np.stack(grid, axis=-1), axis=2)
+            """
+            grid(i, j, 1, 2) => grid top left coordinates
+            [
+                [ [[0, 0]], [[1, 0]], [[2, 0]], ...],
+                [ [[0, 1]], [[1, 1]], [[2, 1]], ...],
+            ]
+            """
+
+            # grid(1, i, j, 3, 2)
+            grid = np.tile(np.expand_dims(grid, axis=0), [1, 1, 1, 3, 1])
+            grid = grid.astype(np.float)
+
+            pred_xy = (
+                ((dxdy - 0.5) * self.xyscales[index]) + 0.5 + grid
+            ) * self.strides[index]
+            pred_wh = tf.exp(wh) * self.anchors[index]
+            pred_score = tf.sigmoid(raw_score)
+            pred_classes = tf.sigmoid(raw_classes)
+
+            return tf.concat(
+                [pred_xy, pred_wh, pred_score, pred_classes], axis=-1
+            )
+
         def train_step(image_data, target):
             with tf.GradientTape() as tape:
-                pred_result = self.model(image_data, training=True)
+                bboxes = self.model(image_data, training=True)
                 giou_loss = conf_loss = prob_loss = 0
 
                 # optimizing process
                 for i in range(3):
-                    conv, pred = pred_result[i * 2], pred_result[i * 2 + 1]
+                    conv, pred = bboxes[i], decode_train(bboxes[i], i)
                     loss_items = yolov4.compute_loss(
                         pred,
                         conv,
@@ -352,12 +386,12 @@ class YOLOv4:
 
         def test_step(image_data, target):
             with tf.GradientTape() as tape:
-                pred_result = self.model(image_data, training=True)
+                bboxes = self.model(image_data, training=True)
                 giou_loss = conf_loss = prob_loss = 0
 
                 # optimizing process
                 for i in range(3):
-                    conv, pred = pred_result[i * 2], pred_result[i * 2 + 1]
+                    conv, pred = bboxes[i], decode_train(bboxes[i], i)
                     loss_items = yolov4.compute_loss(
                         pred,
                         conv,

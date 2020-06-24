@@ -195,57 +195,6 @@ class YOLOv4(Model):
         return [s_bboxes, m_bboxes, l_bboxes]
 
 
-def decode_train(
-    conv_output, num_class, strides, anchors, i=0, xyscale=[1, 1, 1]
-):
-    conv_shape = tf.shape(conv_output)
-    batch_size = conv_shape[0]
-    output_size = conv_shape[1]
-
-    conv_output = tf.reshape(
-        conv_output, (batch_size, output_size, output_size, 3, 5 + num_class)
-    )
-    conv_raw_dxdy, conv_raw_dwdh, conv_raw_conf, conv_raw_prob = tf.split(
-        conv_output, (2, 2, 1, num_class), axis=-1
-    )
-
-    x = tf.tile(
-        tf.expand_dims(tf.range(output_size, dtype=tf.int32), axis=0),
-        [output_size, 1],
-    )
-    y = tf.tile(
-        tf.expand_dims(tf.range(output_size, dtype=tf.int32), axis=1),
-        [1, output_size],
-    )
-    xy_grid = tf.expand_dims(tf.stack([x, y], axis=-1), axis=2)
-
-    xy_grid = tf.tile(tf.expand_dims(xy_grid, axis=0), [batch_size, 1, 1, 3, 1])
-    xy_grid = tf.cast(xy_grid, tf.float32)
-    """
-    top_left
-    [0, 0], [1, 0], [2, 0], ...
-    [0, 1], [1, 1], [2, 1], ...
-    """
-
-    """
-    dxdy = (-0.5 ~ 0.5) * scale + 0.5
-    x = dxdy + top_left
-    x = x * grid_size
-    """
-    pred_xy = (
-        ((tf.sigmoid(conv_raw_dxdy) - 0.5) * xyscale[i]) + 0.5 + xy_grid
-    ) * strides[i]
-
-    pred_wh = tf.exp(conv_raw_dwdh) * anchors[i]
-
-    pred_xywh = tf.concat([pred_xy, pred_wh], axis=-1)
-
-    pred_conf = tf.sigmoid(conv_raw_conf)
-    pred_prob = tf.sigmoid(conv_raw_prob)
-
-    return tf.concat([pred_xywh, pred_conf, pred_prob], axis=-1)
-
-
 def bbox_iou(boxes1, boxes2):
 
     boxes1_area = boxes1[..., 2] * boxes1[..., 3]
