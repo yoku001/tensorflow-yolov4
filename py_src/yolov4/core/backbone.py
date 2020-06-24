@@ -31,8 +31,8 @@ from .common import Mish, YOLOConv2D
 class _ResBlock(Model):
     def __init__(self, filters_1: int, filters_2: int):
         super(_ResBlock, self).__init__()
-        self.conv1 = YOLOConv2D(filters=filters_1, kernel_size=1, strides=1)
-        self.conv2 = YOLOConv2D(filters=filters_2, kernel_size=3, strides=1)
+        self.conv1 = YOLOConv2D(filters=filters_1, kernel_size=1)
+        self.conv2 = YOLOConv2D(filters=filters_2, kernel_size=3)
         self.add = layers.Add()
 
     def call(self, x):
@@ -62,21 +62,15 @@ class CSPResNet(Model):
         self.pre_conv = YOLOConv2D(filters=filters_1, kernel_size=3, strides=2)
 
         # Do not change the order of declaration
-        self.part2_conv = YOLOConv2D(
-            filters=filters_2, kernel_size=1, strides=1,
-        )
+        self.part2_conv = YOLOConv2D(filters=filters_2, kernel_size=1)
 
-        self.part1_conv1 = YOLOConv2D(
-            filters=filters_2, kernel_size=1, strides=1
-        )
+        self.part1_conv1 = YOLOConv2D(filters=filters_2, kernel_size=1)
         self.part1_res_block = ResBlock(
             filters_1=filters_1 // 2, filters_2=filters_2, iteration=iteration
         )
-        self.part1_conv2 = YOLOConv2D(
-            filters=filters_2, kernel_size=1, strides=1
-        )
+        self.part1_conv2 = YOLOConv2D(filters=filters_2, kernel_size=1)
 
-        self.post_conv = YOLOConv2D(filters=filters_1, kernel_size=1, strides=1)
+        self.post_conv = YOLOConv2D(filters=filters_1, kernel_size=1)
 
     def call(self, x):
         x = self.pre_conv(x)
@@ -117,7 +111,7 @@ class CSPDarknet53(Model):
 
     def __init__(self):
         super(CSPDarknet53, self).__init__()
-        self.conv0 = YOLOConv2D(filters=32, kernel_size=3, strides=1,)
+        self.conv0 = YOLOConv2D(filters=32, kernel_size=3)
 
         self.res_block1 = CSPResNet(filters_1=64, filters_2=64, iteration=1)
         self.res_block2 = CSPResNet(filters_1=128, filters_2=64, iteration=2)
@@ -127,27 +121,19 @@ class CSPDarknet53(Model):
 
         self.res_block5 = CSPResNet(filters_1=1024, filters_2=512, iteration=4)
 
-        self.conv72 = YOLOConv2D(
-            filters=512, kernel_size=1, strides=1, activation="leaky"
-        )
+        self.conv72 = YOLOConv2D(filters=512, kernel_size=1, activation="leaky")
         self.conv73 = YOLOConv2D(
-            filters=1024, kernel_size=3, strides=1, activation="leaky"
+            filters=1024, kernel_size=3, activation="leaky"
         )
-        self.conv74 = YOLOConv2D(
-            filters=512, kernel_size=1, strides=1, activation="leaky"
-        )
+        self.conv74 = YOLOConv2D(filters=512, kernel_size=1, activation="leaky")
 
         self.spp = SPP()
 
-        self.conv75 = YOLOConv2D(
-            filters=512, kernel_size=1, strides=1, activation="leaky"
-        )
+        self.conv75 = YOLOConv2D(filters=512, kernel_size=1, activation="leaky")
         self.conv76 = YOLOConv2D(
-            filters=1024, kernel_size=3, strides=1, activation="leaky"
+            filters=1024, kernel_size=3, activation="leaky"
         )
-        self.conv77 = YOLOConv2D(
-            filters=512, kernel_size=1, strides=1, activation="leaky"
-        )
+        self.conv77 = YOLOConv2D(filters=512, kernel_size=1, activation="leaky")
 
     def call(self, x):
         x = self.conv0(x)

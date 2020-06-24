@@ -24,64 +24,31 @@ class YOLOv4(Model):
 
         self.csp_darknet53 = CSPDarknet53()
 
-        self.conv78 = YOLOConv2D(
-            filters=256, kernel_size=1, strides=1, activation="leaky"
-        )
+        self.conv78 = YOLOConv2D(filters=256, kernel_size=1, activation="leaky")
         self.upSampling78 = layers.UpSampling2D()
-        self.conv79 = YOLOConv2D(
-            filters=256, kernel_size=1, strides=1, activation="leaky"
-        )
+        self.conv79 = YOLOConv2D(filters=256, kernel_size=1, activation="leaky")
         self.concat78_79 = layers.Concatenate(axis=-1)
 
-        self.conv80 = YOLOConv2D(
-            filters=256, kernel_size=1, strides=1, activation="leaky"
-        )
-        self.conv81 = YOLOConv2D(
-            filters=512, kernel_size=3, strides=1, activation="leaky"
-        )
-        self.conv82 = YOLOConv2D(
-            filters=256, kernel_size=1, strides=1, activation="leaky"
-        )
-        self.conv83 = YOLOConv2D(
-            filters=512, kernel_size=3, strides=1, activation="leaky"
-        )
-        self.conv84 = YOLOConv2D(
-            filters=256, kernel_size=1, strides=1, activation="leaky"
-        )
+        self.conv80 = YOLOConv2D(filters=256, kernel_size=1, activation="leaky")
+        self.conv81 = YOLOConv2D(filters=512, kernel_size=3, activation="leaky")
+        self.conv82 = YOLOConv2D(filters=256, kernel_size=1, activation="leaky")
+        self.conv83 = YOLOConv2D(filters=512, kernel_size=3, activation="leaky")
+        self.conv84 = YOLOConv2D(filters=256, kernel_size=1, activation="leaky")
 
-        self.conv85 = YOLOConv2D(
-            filters=128, kernel_size=1, strides=1, activation="leaky"
-        )
+        self.conv85 = YOLOConv2D(filters=128, kernel_size=1, activation="leaky")
         self.upSampling85 = layers.UpSampling2D()
-        self.conv86 = YOLOConv2D(
-            filters=128, kernel_size=1, strides=1, activation="leaky"
-        )
+        self.conv86 = YOLOConv2D(filters=128, kernel_size=1, activation="leaky")
         self.concat85_86 = layers.Concatenate(axis=-1)
 
-        self.conv87 = YOLOConv2D(
-            filters=128, kernel_size=1, strides=1, activation="leaky"
-        )
-        self.conv88 = YOLOConv2D(
-            filters=256, kernel_size=3, strides=1, activation="leaky"
-        )
-        self.conv89 = YOLOConv2D(
-            filters=128, kernel_size=1, strides=1, activation="leaky"
-        )
-        self.conv90 = YOLOConv2D(
-            filters=256, kernel_size=3, strides=1, activation="leaky"
-        )
-        self.conv91 = YOLOConv2D(
-            filters=128, kernel_size=1, strides=1, activation="leaky"
-        )
+        self.conv87 = YOLOConv2D(filters=128, kernel_size=1, activation="leaky")
+        self.conv88 = YOLOConv2D(filters=256, kernel_size=3, activation="leaky")
+        self.conv89 = YOLOConv2D(filters=128, kernel_size=1, activation="leaky")
+        self.conv90 = YOLOConv2D(filters=256, kernel_size=3, activation="leaky")
+        self.conv91 = YOLOConv2D(filters=128, kernel_size=1, activation="leaky")
 
-        self.conv92 = YOLOConv2D(
-            filters=256, kernel_size=3, strides=1, activation="leaky"
-        )
+        self.conv92 = YOLOConv2D(filters=256, kernel_size=3, activation="leaky")
         self.conv93 = YOLOConv2D(
-            filters=3 * (self.num_classes + 5),
-            kernel_size=1,
-            strides=1,
-            activation=None,
+            filters=3 * (self.num_classes + 5), kernel_size=1, activation=None,
         )
 
         self.conv94 = YOLOConv2D(
@@ -89,30 +56,17 @@ class YOLOv4(Model):
         )
         self.concat84_94 = layers.Concatenate(axis=-1)
 
-        self.conv95 = YOLOConv2D(
-            filters=256, kernel_size=1, strides=1, activation="leaky"
-        )
-        self.conv96 = YOLOConv2D(
-            filters=512, kernel_size=3, strides=1, activation="leaky"
-        )
-        self.conv97 = YOLOConv2D(
-            filters=256, kernel_size=1, strides=1, activation="leaky"
-        )
-        self.conv98 = YOLOConv2D(
-            filters=512, kernel_size=3, strides=1, activation="leaky"
-        )
-        self.conv99 = YOLOConv2D(
-            filters=256, kernel_size=1, strides=1, activation="leaky"
-        )
+        self.conv95 = YOLOConv2D(filters=256, kernel_size=1, activation="leaky")
+        self.conv96 = YOLOConv2D(filters=512, kernel_size=3, activation="leaky")
+        self.conv97 = YOLOConv2D(filters=256, kernel_size=1, activation="leaky")
+        self.conv98 = YOLOConv2D(filters=512, kernel_size=3, activation="leaky")
+        self.conv99 = YOLOConv2D(filters=256, kernel_size=1, activation="leaky")
 
         self.conv100 = YOLOConv2D(
-            filters=512, kernel_size=3, strides=1, activation="leaky"
+            filters=512, kernel_size=3, activation="leaky"
         )
         self.conv101 = YOLOConv2D(
-            filters=3 * (self.num_classes + 5),
-            kernel_size=1,
-            strides=1,
-            activation=None,
+            filters=3 * (self.num_classes + 5), kernel_size=1, activation=None,
         )
 
         self.conv102 = YOLOConv2D(
@@ -121,29 +75,26 @@ class YOLOv4(Model):
         self.concat77_102 = layers.Concatenate(axis=-1)
 
         self.conv103 = YOLOConv2D(
-            filters=512, kernel_size=1, strides=1, activation="leaky"
+            filters=512, kernel_size=1, activation="leaky"
         )
         self.conv104 = YOLOConv2D(
-            filters=1024, kernel_size=3, strides=1, activation="leaky"
+            filters=1024, kernel_size=3, activation="leaky"
         )
         self.conv105 = YOLOConv2D(
-            filters=512, kernel_size=1, strides=1, activation="leaky"
+            filters=512, kernel_size=1, activation="leaky"
         )
         self.conv106 = YOLOConv2D(
-            filters=1024, kernel_size=3, strides=1, activation="leaky"
+            filters=1024, kernel_size=3, activation="leaky"
         )
         self.conv107 = YOLOConv2D(
-            filters=512, kernel_size=1, strides=1, activation="leaky"
+            filters=512, kernel_size=1, activation="leaky"
         )
 
         self.conv108 = YOLOConv2D(
-            filters=1024, kernel_size=3, strides=1, activation="leaky"
+            filters=1024, kernel_size=3, activation="leaky"
         )
         self.conv109 = YOLOConv2D(
-            filters=3 * (self.num_classes + 5),
-            kernel_size=1,
-            strides=1,
-            activation=None,
+            filters=3 * (self.num_classes + 5), kernel_size=1, activation=None,
         )
 
     def call(self, x, training: bool = False):
