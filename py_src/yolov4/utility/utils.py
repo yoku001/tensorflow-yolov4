@@ -207,7 +207,31 @@ def postprocess_boxes(pred_bbox, org_img_shape, input_size, score_threshold):
     valid_scale = [0, np.inf]
     pred_bbox = np.array(pred_bbox)
 
-    pred_xywh = pred_bbox[:, 0:4]
+    """
+    Remove low socre candidates
+    This step should be the first !!
+    """
+    classes = np.argmax(pred_bbox[:, 5:], axis=-1) + 5
+    scores = pred_bbox[:, 4] * pred_bbox[np.arange(len(pred_bbox)), classes]
+    pred_bbox = pred_bbox[scores > score_threshold, :]
+
+    # Remove out of range candidates
+    pred_bbox = pred_bbox[pred_bbox[:, 0] - pred_bbox[:, 2] / 2 >= 0, :]
+    pred_bbox = pred_bbox[pred_bbox[:, 0] + pred_bbox[:, 2] / 2 <= 1, :]
+    pred_bbox = pred_bbox[pred_bbox[:, 1] - pred_bbox[:, 3] / 2 >= 0, :]
+    pred_bbox = pred_bbox[pred_bbox[:, 1] + pred_bbox[:, 3] / 2 <= 1, :]
+
+    # Remove small candidates
+    pred_bbox = pred_bbox[
+        np.logical_and(
+            pred_bbox[:, 2] > 2 / input_size, pred_bbox[:, 3] > 2 / input_size
+        ),
+        :,
+    ]
+
+    # TODO: optimize below
+
+    pred_xywh = pred_bbox[:, 0:4] * input_size
     pred_conf = pred_bbox[:, 4]
     pred_prob = pred_bbox[:, 5:]
 
@@ -229,37 +253,11 @@ def postprocess_boxes(pred_bbox, org_img_shape, input_size, score_threshold):
     pred_coor[:, 0::2] = 1.0 * (pred_coor[:, 0::2] - dw) / resize_ratio
     pred_coor[:, 1::2] = 1.0 * (pred_coor[:, 1::2] - dh) / resize_ratio
 
-    # # (3) clip some boxes those are out of range
-    pred_coor = np.concatenate(
-        [
-            np.maximum(pred_coor[:, :2], [0, 0]),
-            np.minimum(pred_coor[:, 2:], [org_w - 1, org_h - 1]),
-        ],
-        axis=-1,
-    )
-    invalid_mask = np.logical_or(
-        (pred_coor[:, 0] > pred_coor[:, 2]), (pred_coor[:, 1] > pred_coor[:, 3])
-    )
-    pred_coor[invalid_mask] = 0
-
-    # # (4) discard some invalid boxes
-    bboxes_scale = np.sqrt(
-        np.multiply.reduce(pred_coor[:, 2:4] - pred_coor[:, 0:2], axis=-1)
-    )
-    scale_mask = np.logical_and(
-        (valid_scale[0] < bboxes_scale), (bboxes_scale < valid_scale[1])
-    )
-
-    # # (5) discard some boxes with low scores
     classes = np.argmax(pred_prob, axis=-1)
     scores = pred_conf * pred_prob[np.arange(len(pred_coor)), classes]
-    # scores = pred_prob[np.arange(len(pred_coor)), classes]
-    score_mask = scores > score_threshold
-    mask = np.logical_and(scale_mask, score_mask)
-    coors, scores, classes = pred_coor[mask], scores[mask], classes[mask]
 
     return np.concatenate(
-        [coors, scores[:, np.newaxis], classes[:, np.newaxis]], axis=-1
+        [pred_coor, scores[:, np.newaxis], classes[:, np.newaxis]], axis=-1
     )
 
 
