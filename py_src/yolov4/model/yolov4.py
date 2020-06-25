@@ -30,10 +30,12 @@ from .backbone import CSPDarknet53
 
 
 class Decode(Model):
-    def __init__(self, anchors, cell_width: int, num_classes: int, xyscale):
+    def __init__(
+        self, anchors_ratio, cell_ratio: int, num_classes: int, xyscale
+    ):
         super(Decode, self).__init__()
-        self.anchors = anchors
-        self.cell_width = cell_width
+        self.anchors_ratio = anchors_ratio
+        self.cell_ratio = cell_ratio
         self.num_classes = num_classes
         self.xyscale = xyscale
 
@@ -48,7 +50,6 @@ class Decode(Model):
             3,
             5 + self.num_classes,
         )
-
         """
         grid(1, i, j, 3, 2) => grid top left coordinates
         [
@@ -85,9 +86,9 @@ class Decode(Model):
         dxdy = tf.keras.activations.sigmoid(dxdy)
         xy = (
             (dxdy - 0.5) * self.xyscale + 0.5 + self.xy_grid
-        ) * self.cell_width
+        ) * self.cell_ratio
 
-        wh = self.anchors * backend.exp(wh)
+        wh = self.anchors_ratio * backend.exp(wh)
 
         if not training:
             score = tf.keras.activations.sigmoid(score)
@@ -114,7 +115,7 @@ class YOLOv4(Model):
     @return (batch, candidates,(xywh + score + num_classes))
     """
 
-    def __init__(self, anchors, num_classes: int, xyscales):
+    def __init__(self, anchors, input_size, num_classes: int, xyscales):
         super(YOLOv4, self).__init__()
         self.csp_darknet53 = CSPDarknet53()
 
@@ -145,8 +146,8 @@ class YOLOv4(Model):
             filters=3 * (num_classes + 5), kernel_size=1, activation=None,
         )
         self.decode93 = Decode(
-            anchors=anchors[0],
-            cell_width=8,
+            anchors_ratio=anchors[0] / input_size,
+            cell_ratio=8 / input_size,
             num_classes=num_classes,
             xyscale=xyscales[0],
         )
@@ -169,8 +170,8 @@ class YOLOv4(Model):
             filters=3 * (num_classes + 5), kernel_size=1, activation=None,
         )
         self.decode101 = Decode(
-            anchors=anchors[1],
-            cell_width=16,
+            anchors_ratio=anchors[1] / input_size,
+            cell_ratio=16 / input_size,
             num_classes=num_classes,
             xyscale=xyscales[1],
         )
@@ -203,8 +204,8 @@ class YOLOv4(Model):
             filters=3 * (num_classes + 5), kernel_size=1, activation=None,
         )
         self.decode109 = Decode(
-            anchors=anchors[2],
-            cell_width=32,
+            anchors_ratio=anchors[2] / input_size,
+            cell_ratio=32 / input_size,
             num_classes=num_classes,
             xyscale=xyscales[2],
         )
