@@ -30,8 +30,9 @@ import tensorflow as tf
 import time
 from typing import Union
 
-from ..core import dataset
-from ..core import utils
+from ..utility import dataset
+from ..utility import train
+from ..utility import utils
 from ..model import yolov4
 
 
@@ -320,7 +321,7 @@ class YOLOv4:
                 # optimizing process
                 for i in range(3):
                     conv, pred = bboxes[i], decode_train(bboxes[i], i)
-                    loss_items = yolov4.compute_loss(
+                    loss_items = train.compute_loss(
                         pred,
                         conv,
                         target[i][0],
@@ -398,7 +399,7 @@ class YOLOv4:
                 # optimizing process
                 for i in range(3):
                     conv, pred = bboxes[i], decode_train(bboxes[i], i)
-                    loss_items = yolov4.compute_loss(
+                    loss_items = train.compute_loss(
                         pred,
                         conv,
                         target[i][0],
