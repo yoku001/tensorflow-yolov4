@@ -107,7 +107,23 @@ class YOLOv4:
         elif isinstance(data, dict):
             self._classes = data
         else:
-            raise TypeError("YoloV4: Set classes path or dictionary")
+            raise TypeError("YOLOv4: Set classes path or dictionary")
+
+    @property
+    def input_size(self):
+        """
+        Usage:
+            yolo.input_size = 608
+            print(yolo.input_size)
+        """
+        return self._input_size
+
+    @input_size.setter
+    def input_size(self, size: int):
+        if size % 32 == 0:
+            self._input_size = size
+        else:
+            raise ValueError("YOLOv4: Set input_size to multiples of 32")
 
     @property
     def strides(self):
