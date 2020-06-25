@@ -13,17 +13,6 @@ def read_class_names(class_file_name):
     return names
 
 
-def get_anchors(anchors_path, tiny=False):
-    """loads the anchors from a file"""
-    with open(anchors_path) as f:
-        anchors = f.readline()
-    anchors = np.array(anchors.split(","), dtype=np.float32)
-    if tiny:
-        return anchors.reshape(2, 3, 2)
-    else:
-        return anchors.reshape(3, 3, 2)
-
-
 def image_preprocess(image, target_size, gt_boxes=None):
 
     ih, iw = target_size
