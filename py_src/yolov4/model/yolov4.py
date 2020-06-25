@@ -23,41 +23,78 @@ SOFTWARE.
 """
 
 import tensorflow as tf
-from tensorflow.keras import Model, layers
+from tensorflow.keras import backend, layers, Model
 
 from .common import YOLOConv2D
 from .backbone import CSPDarknet53
 
 
 class Decode(Model):
-    def __init__(self, num_classes: int):
+    def __init__(self, anchors, cell_width: int, num_classes: int, xyscale):
         super(Decode, self).__init__()
+        self.anchors = anchors
+        self.cell_width = cell_width
         self.num_classes = num_classes
+        self.xyscale = xyscale
 
-        self.reshape = layers.Reshape((-1,))
+        self.reshape0 = layers.Reshape((-1,))
         self.concatenate = layers.Concatenate(axis=-1)
+        self.reshape1 = layers.Reshape((-1,))
 
     def build(self, input_shape):
-        self.reshape.target_shape = (
+        self.reshape0.target_shape = (
             input_shape[1],
             input_shape[1],
             3,
             5 + self.num_classes,
         )
 
+        """
+        grid(1, i, j, 3, 2) => grid top left coordinates
+        [
+            [ [[0, 0]], [[1, 0]], [[2, 0]], ...],
+            [ [[0, 1]], [[1, 1]], [[2, 1]], ...],
+        ]
+        """
+        self.xy_grid = tf.stack(
+            tf.meshgrid(tf.range(input_shape[1]), tf.range(input_shape[1])),
+            axis=-1,
+        )  # size i, j, 2
+        self.xy_grid = tf.reshape(
+            self.xy_grid, (1, input_shape[1], input_shape[1], 1, 2)
+        )
+        self.xy_grid = tf.tile(self.xy_grid, [1, 1, 1, 3, 1])
+        self.xy_grid = tf.cast(self.xy_grid, tf.float32)
+        self.reshape1.target_shape = (
+            input_shape[1] * input_shape[1] * 3,
+            5 + self.num_classes,
+        )
+
     def call(self, x, training: bool = False):
-        x = self.reshape(x)
+        x = self.reshape0(x)
         dxdy, wh, score, classes = tf.split(
             x, (2, 2, 1, self.num_classes), axis=-1
         )
 
+        """
+        x = f(dx) + left_x
+        y = f(dy) + top_y
+        w = anchor_w * exp(w)
+        h = anchor_h * exp(h)
+        """
         dxdy = tf.keras.activations.sigmoid(dxdy)
+        xy = (
+            (dxdy - 0.5) * self.xyscale + 0.5 + self.xy_grid
+        ) * self.cell_width
+
+        wh = self.anchors * backend.exp(wh)
 
         if not training:
             score = tf.keras.activations.sigmoid(score)
             classes = tf.keras.activations.sigmoid(classes)
 
-        x = self.concatenate([dxdy, wh, score, classes])
+        x = self.concatenate([xy, wh, score, classes])
+        x = self.reshape1(x)
         return x
 
 
@@ -66,9 +103,18 @@ class YOLOv4(Model):
     Path Aggregation Network(PAN)
     Spatial Attention Module(SAM)
     Bounding Box(BBox)
+
+    bboxes: (batch, *grid(x, x), num_anchors, (xywh + score + num_classes))
+    Each grid cell has anchors.
+    Each anchor has (x, y, w, h, score, c0, c1, c2, ...)
+
+    inference: x, y, w, h, sig(s), sig(c0), ...
+    training:  x, y, w, h, s,      c0,      ...
+
+    @return (batch, candidates,(xywh + score + num_classes))
     """
 
-    def __init__(self, num_classes: int):
+    def __init__(self, anchors, num_classes: int, xyscales):
         super(YOLOv4, self).__init__()
         self.csp_darknet53 = CSPDarknet53()
 
@@ -98,7 +144,12 @@ class YOLOv4(Model):
         self.conv93 = YOLOConv2D(
             filters=3 * (num_classes + 5), kernel_size=1, activation=None,
         )
-        self.decode93 = Decode(num_classes=num_classes)
+        self.decode93 = Decode(
+            anchors=anchors[0],
+            cell_width=8,
+            num_classes=num_classes,
+            xyscale=xyscales[0],
+        )
 
         self.conv94 = YOLOConv2D(
             filters=256, kernel_size=3, strides=2, activation="leaky"
@@ -117,7 +168,12 @@ class YOLOv4(Model):
         self.conv101 = YOLOConv2D(
             filters=3 * (num_classes + 5), kernel_size=1, activation=None,
         )
-        self.decode101 = Decode(num_classes=num_classes)
+        self.decode101 = Decode(
+            anchors=anchors[1],
+            cell_width=16,
+            num_classes=num_classes,
+            xyscale=xyscales[1],
+        )
 
         self.conv102 = YOLOConv2D(
             filters=512, kernel_size=3, strides=2, activation="leaky"
@@ -146,7 +202,13 @@ class YOLOv4(Model):
         self.conv109 = YOLOConv2D(
             filters=3 * (num_classes + 5), kernel_size=1, activation=None,
         )
-        self.decode109 = Decode(num_classes=num_classes)
+        self.decode109 = Decode(
+            anchors=anchors[2],
+            cell_width=32,
+            num_classes=num_classes,
+            xyscale=xyscales[2],
+        )
+        self.concat_total = layers.Concatenate(axis=1)
 
     def call(self, x, training: bool = False):
         route1, route2, route3 = self.csp_darknet53(x)
@@ -206,12 +268,5 @@ class YOLOv4(Model):
         # (batch, x, x, 3, (4 + 1 + num_classes))
         l_bboxes = self.decode109(l_bboxes, training)
 
-        """
-        (batch, *grid(x, x), num_anchors, (dxdy + wh + score + num_classes))
-        Each grid cell has anchors.
-        Each anchor has (x, y, w, h, score, c0, c1, c2, ...)
-
-        inference: sig(x), sig(y), w, h, sig(s), sig(c0), ...
-        training:  sig(x), sig(y), w, h, s,      c0,      ...
-        """
-        return [s_bboxes, m_bboxes, l_bboxes]
+        x = self.concat_total([s_bboxes, m_bboxes, l_bboxes])
+        return x

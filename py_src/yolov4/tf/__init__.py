@@ -163,7 +163,11 @@ class YOLOv4:
     def make_model(self):
         self._has_weights = False
         tf.keras.backend.clear_session()
-        self.model = yolov4.YOLOv4(num_classes=len(self.classes))
+        self.model = yolov4.YOLOv4(
+            anchors=self.anchors,
+            num_classes=len(self.classes),
+            xyscales=self.xyscales,
+        )
         # [batch, height, width, channel]
         self.model(tf.keras.layers.Input([self.input_size, self.input_size, 3]))
 
@@ -185,13 +189,10 @@ class YOLOv4:
         image_data = image_data / 255
         image_data = image_data[np.newaxis, ...].astype(np.float32)
 
-        pred_bbox = self.model.predict(image_data)
+        pred_bboxes = self.model.predict(image_data)
 
-        pred_bbox = utils.postprocess_bbbox(
-            pred_bbox, self.anchors, self.strides, self.xyscales
-        )
         bboxes = utils.postprocess_boxes(
-            pred_bbox, frame.shape[:2], self.input_size, 0.25
+            pred_bboxes[0], frame.shape[:2], self.input_size, 0.25
         )
         bboxes = utils.nms(bboxes, 0.213, method="nms")
 

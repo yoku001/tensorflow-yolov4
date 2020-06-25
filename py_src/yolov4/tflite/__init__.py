@@ -120,17 +120,11 @@ class YOLOv4:
         self.interpreter.set_tensor(self.input_index, image_data)
         self.interpreter.invoke()
 
-        pred_bbox = utils.postprocess_bbbox(
-            [
-                self.interpreter.get_tensor(self.output_details[i]["index"])
-                for i in range(len(self.output_details))
-            ],
-            self.anchors,
-            self.strides,
-            self.xyscale,
-        )
         bboxes = utils.postprocess_boxes(
-            pred_bbox, frame_size, self.width, 0.25
+            self.interpreter.get_tensor(self.output_details[0]["index"]),
+            frame_size,
+            self.width,
+            0.25,
         )
         bboxes = utils.nms(bboxes, 0.213, method="nms")
 

@@ -202,35 +202,6 @@ def diounms_sort(bboxes, iou_threshold, sigma=0.3, method="nms", beta_nms=0.6):
     return best_bboxes
 
 
-def postprocess_bbbox(pred_bbox, anchors, strides, xyscale=[1, 1, 1]):
-    for i, pred in enumerate(pred_bbox):
-        conv_shape = pred.shape
-        output_size = conv_shape[1]
-        conv_raw_dxdy = pred[:, :, :, :, 0:2]
-        conv_raw_dwdh = pred[:, :, :, :, 2:4]
-        xy_grid = np.meshgrid(np.arange(output_size), np.arange(output_size))
-        xy_grid = np.expand_dims(
-            np.stack(xy_grid, axis=-1), axis=2
-        )  # [gx, gy, 1, 2]
-
-        xy_grid = np.tile(np.expand_dims(xy_grid, axis=0), [1, 1, 1, 3, 1])
-        xy_grid = xy_grid.astype(np.float)
-
-        pred_xy = (
-            ((conv_raw_dxdy - 0.5) * xyscale[i]) + 0.5 + xy_grid
-        ) * strides[i]
-
-        pred_wh = np.exp(conv_raw_dwdh) * anchors[i]
-        pred[:, :, :, :, 0:4] = np.concatenate(
-            [pred_xy, pred_wh], axis=(pred_wh.ndim - 1)
-        )
-
-    pred_bbox = [np.reshape(x, (-1, np.shape(x)[-1])) for x in pred_bbox]
-    pred_bbox = np.concatenate(pred_bbox, axis=0)
-
-    return pred_bbox
-
-
 def postprocess_boxes(pred_bbox, org_img_shape, input_size, score_threshold):
 
     valid_scale = [0, np.inf]
