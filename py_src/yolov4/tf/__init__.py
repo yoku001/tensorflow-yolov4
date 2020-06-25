@@ -215,7 +215,6 @@ class YOLOv4:
             cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
             result = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             cv2.imshow("result", result)
-            cv2.waitKey(cv_waitKey_delay)
         else:
             vid = cv2.VideoCapture(media_path)
             while True:
@@ -223,7 +222,7 @@ class YOLOv4:
                 if return_value:
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 else:
-                    raise ValueError("No image! Try with another video format")
+                    break
 
                 prev_time = time.time()
                 bboxes = self.predict(frame)
@@ -238,6 +237,11 @@ class YOLOv4:
                 cv2.imshow("result", result)
                 if cv2.waitKey(cv_waitKey_delay) & 0xFF == ord("q"):
                     break
+
+        print("YOLOv4: Inference is finished")
+        while cv2.waitKey(10) & 0xFF != ord("q"):
+            pass
+        cv2.destroyWindow("result")
 
     def train(
         self,
