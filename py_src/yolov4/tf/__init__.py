@@ -165,6 +165,7 @@ class YOLOv4:
         tf.keras.backend.clear_session()
         self.model = yolov4.YOLOv4(
             anchors=self.anchors,
+            input_size=self.input_size,
             num_classes=len(self.classes),
             xyscales=self.xyscales,
         )
