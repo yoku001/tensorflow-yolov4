@@ -32,7 +32,7 @@ from typing import Union
 
 from ..core import dataset
 from ..core import utils
-from ..core import yolov4
+from ..model import yolov4
 
 
 class YOLOv4:

@@ -1,8 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model, layers
-from . import utils
-from . import common
+
 from .common import YOLOConv2D
 from .backbone import CSPDarknet53
 
