@@ -33,6 +33,7 @@ from typing import Union
 from ..utility import dataset
 from ..utility import train
 from ..utility import utils
+from ..utility import weights
 from ..model import yolov4
 
 
@@ -156,7 +157,7 @@ class YOLOv4:
             yolo.load_weights("checkpoints")
         """
         if weights_type == "yolo":
-            utils.load_weights(self.model, path)
+            weights.load_yolov4(self.model, path)
         elif weights_type == "tf":
             self.model.load_weights(path).expect_partial()
 
