@@ -31,6 +31,7 @@ import time
 from typing import Union
 
 from ..utility import dataset
+from ..utility import media
 from ..utility import train
 from ..utility import utils
 from ..utility import weights
@@ -179,12 +180,9 @@ class YOLOv4:
 
         self._has_weights = True
 
-    def predict(self, frame):
-        frame_size = frame.shape[:2]
-
-        image_data = utils.image_preprocess(
-            np.copy(frame), [self.input_size, self.input_size]
-        )
+    def predict(self, frame: np.ndarray):
+        image_data = media.resize(frame, self.input_size)
+        image_data = image_data / 255
         image_data = image_data[np.newaxis, ...].astype(np.float32)
 
         pred_bbox = self.model.predict(image_data)
@@ -193,7 +191,7 @@ class YOLOv4:
             pred_bbox, self.anchors, self.strides, self.xyscales
         )
         bboxes = utils.postprocess_boxes(
-            pred_bbox, frame_size, self.input_size, 0.25
+            pred_bbox, frame.shape[:2], self.input_size, 0.25
         )
         bboxes = utils.nms(bboxes, 0.213, method="nms")
 
