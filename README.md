@@ -12,6 +12,28 @@ YOLOv4 Implemented in Tensorflow 2.
 
 Download yolov4.weights file: https://drive.google.com/open?id=1cewMfusmPjYWbrnuJRuKhPMwRe_b9PaT
 
+## Dependencies
+
+```shell
+python3 -m pip install -U pip setuptools wheel
+```
+
+```shell
+python3 -m pip install numpy
+```
+
+Install OpenCV (cv2)
+
+### Tensorflow 2
+
+```shell
+python3 -m pip install tensorflow
+```
+
+### TFlite
+
+Ref: [https://www.tensorflow.org/lite/guide/python](https://www.tensorflow.org/lite/guide/python)
+
 ## Performance
 
 <p align="center"><img src="data/performance.png" width="640"\></p>
@@ -39,7 +61,6 @@ yolo.load_weights("/home/hhk7734/Desktop/yolov4.weights", weights_type="yolo")
 
 yolo.inference(
     media_path="/home/hhk7734/tensorflow-yolov4/data/kite.jpg",
-    cv_waitKey_delay=1000,
 )
 ```
 
