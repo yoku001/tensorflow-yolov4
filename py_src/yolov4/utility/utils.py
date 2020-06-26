@@ -157,47 +157,124 @@ def bboxes_ciou(boxes1, boxes2):
     return iou - ciou_term
 
 
-def nms(bboxes, iou_threshold, sigma=0.3, method="nms"):
+def DIoU_NMS(candidates, threshold):
     """
-    :param bboxes: (xmin, ymin, xmax, ymax, score, class)
+    Distance Intersection over Union(DIoU)
+    Non-Maximum Suppression(NMS)
 
-    Note: soft-nms, https://arxiv.org/pdf/1704.04503.pdf
-          https://github.com/bharatsingh430/soft-nms
+    @param candidates: [[center_x, center_y, w, h, class_id, propability], ...]
     """
-    classes_in_img = list(set(bboxes[:, 5]))
-    best_bboxes = []
+    bboxes = []
+    for class_id in set(candidates[:, 4]):
+        class_bboxes = candidates[candidates[:, 4] == class_id]
+        if class_bboxes.shape[0] == 1:
+            # One candidate
+            bboxes.append(class_bboxes)
+            continue
 
-    for cls in classes_in_img:
-        cls_mask = bboxes[:, 5] == cls
-        cls_bboxes = bboxes[cls_mask]
+        while True:
+            half = class_bboxes[:, 2:4] * 0.5
+            M_index = np.argmax(class_bboxes[:, 5])
+            M_bbox = class_bboxes[M_index, :]
+            M_half = half[M_index, :]
+            # Max probability
+            bboxes.append(M_bbox[np.newaxis, :])
 
-        while len(cls_bboxes) > 0:
-            max_ind = np.argmax(cls_bboxes[:, 4])
-            best_bbox = cls_bboxes[max_ind]
-            best_bboxes.append(best_bbox)
-            cls_bboxes = np.concatenate(
-                [cls_bboxes[:max_ind], cls_bboxes[max_ind + 1 :]]
+            enclose_left = np.minimum(
+                class_bboxes[:, 0] - half[:, 0], M_bbox[0] - M_half[0],
             )
-            iou = bboxes_iou(best_bbox[np.newaxis, :4], cls_bboxes[:, :4])
-            weight = np.ones((len(iou),), dtype=np.float32)
+            enclose_right = np.maximum(
+                class_bboxes[:, 0] + half[:, 0], M_bbox[0] + M_half[0],
+            )
+            enclose_top = np.minimum(
+                class_bboxes[:, 1] - half[:, 1], M_bbox[1] - M_half[1],
+            )
+            enclose_bottom = np.maximum(
+                class_bboxes[:, 1] + half[:, 1], M_bbox[1] + M_half[1],
+            )
 
-            assert method in ["nms", "soft-nms"]
+            enclose_width = enclose_right - enclose_left
+            enclose_height = enclose_bottom - enclose_top
 
-            if method == "nms":
-                iou_mask = iou > iou_threshold
-                weight[iou_mask] = 0.0
+            width_mask = enclose_width >= class_bboxes[:, 2] + M_bbox[2]
+            height_mask = enclose_height >= class_bboxes[:, 3] + M_bbox[3]
+            other_mask = np.logical_or(width_mask, height_mask)
+            other_bboxes = class_bboxes[other_mask]
 
-            if method == "soft-nms":
-                weight = np.exp(-(1.0 * iou ** 2 / sigma))
+            mask = np.logical_not(other_mask)
+            class_bboxes = class_bboxes[mask]
+            if class_bboxes.shape[0] == 1:
+                if other_bboxes.shape[0] == 1:
+                    bboxes.append(other_bboxes)
+                    break
+                else:
+                    class_bboxes = other_bboxes
+                    continue
 
-            cls_bboxes[:, 4] = cls_bboxes[:, 4] * weight
-            score_mask = cls_bboxes[:, 4] > 0.0
-            cls_bboxes = cls_bboxes[score_mask]
+            half = half[mask]
+            enclose_left = enclose_left[mask]
+            enclose_right = enclose_right[mask]
+            enclose_top = enclose_top[mask]
+            enclose_bottom = enclose_bottom[mask]
 
-    return best_bboxes
+            inter_left = np.maximum(
+                class_bboxes[:, 0] - half[:, 0], M_bbox[0] - M_half[0],
+            )
+            inter_right = np.minimum(
+                class_bboxes[:, 0] + half[:, 0], M_bbox[0] + M_half[0],
+            )
+            inter_top = np.maximum(
+                class_bboxes[:, 1] - half[:, 1], M_bbox[1] - M_half[1],
+            )
+            inter_bottom = np.minimum(
+                class_bboxes[:, 1] + half[:, 1], M_bbox[1] + M_half[1],
+            )
+
+            class_area = class_bboxes[:, 2] * class_bboxes[:, 3]
+            M_area = M_bbox[2] * M_bbox[3]
+            inter_area = (inter_right - inter_left) * (inter_bottom - inter_top)
+            iou = inter_area / (class_area + M_area)
+
+            c = (enclose_right - enclose_left) * (
+                enclose_right - enclose_left
+            ) + (enclose_bottom - enclose_top) * (enclose_bottom - enclose_top)
+            d = (class_bboxes[:, 0] - M_bbox[0]) * (
+                class_bboxes[:, 0] - M_bbox[0]
+            ) + (class_bboxes[:, 1] - M_bbox[1]) * (
+                class_bboxes[:, 1] - M_bbox[1]
+            )
+
+            # DIoU = IoU - d^2 / c^2
+            other_mask = iou - d / c < threshold
+            other2_bboxes = class_bboxes[other_mask]
+            if other_bboxes.shape[0] != 0 and other2_bboxes.shape[0] != 0:
+                class_bboxes = np.concatenate(
+                    [other_bboxes, other2_bboxes], axis=0
+                )
+                continue
+            elif other_bboxes.shape[0] != 0:
+                if other_bboxes.shape[0] == 1:
+                    bboxes.append(other_bboxes)
+                    break
+                else:
+                    class_bboxes = other_bboxes
+                    continue
+            elif other2_bboxes.shape[0] != 0:
+                if other2_bboxes.shape[0] == 1:
+                    bboxes.append(other2_bboxes)
+                    break
+                else:
+                    class_bboxes = other2_bboxes
+                    continue
+            else:
+                break
+
+    return np.concatenate(bboxes, axis=0)
 
 
-def reduce_bbox_candidates(candidates, input_size, threshold):
+def reduce_bbox_candidates(
+    candidates, input_size, score_threshold, DIoU_threshold
+):
     """
     @param candidates: [[center_x, center_y, w, h, class_id, propability], ...]
     """
@@ -210,7 +287,7 @@ def reduce_bbox_candidates(candidates, input_size, threshold):
     scores = (
         candidates[:, 4] * candidates[np.arange(len(candidates)), classes + 5]
     )
-    candidates = candidates[scores > threshold, :]
+    candidates = candidates[scores > score_threshold, :]
 
     # Remove out of range candidates
     half = candidates[:, 2:4] * 0.5
@@ -237,6 +314,9 @@ def reduce_bbox_candidates(candidates, input_size, threshold):
         [candidates[:, :4], classes[:, np.newaxis], scores[:, np.newaxis],],
         axis=-1,
     )
+
+    candidates = DIoU_NMS(candidates, DIoU_threshold)
+
     return candidates
 
 
