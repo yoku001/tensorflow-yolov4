@@ -291,10 +291,17 @@ def reduce_bbox_candidates(
 
     # Remove out of range candidates
     half = candidates[:, 2:4] * 0.5
-    candidates = candidates[candidates[:, 0] - half[:, 0] >= 0, :]
-    candidates = candidates[candidates[:, 0] + half[:, 0] <= 1, :]
-    candidates = candidates[candidates[:, 1] - half[:, 1] >= 0, :]
-    candidates = candidates[candidates[:, 1] + half[:, 1] <= 1, :]
+    mask = candidates[:, 0] - half[:, 0] >= 0
+    candidates = candidates[mask, :]
+    half = half[mask, :]
+    mask = candidates[:, 0] + half[:, 0] <= 1
+    candidates = candidates[mask, :]
+    half = half[mask, :]
+    mask = candidates[:, 1] - half[:, 1] >= 0
+    candidates = candidates[mask, :]
+    half = half[mask, :]
+    mask = candidates[:, 1] + half[:, 1] <= 1
+    candidates = candidates[mask, :]
 
     # Remove small candidates
     candidates = candidates[
