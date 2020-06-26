@@ -197,68 +197,68 @@ def nms(bboxes, iou_threshold, sigma=0.3, method="nms"):
     return best_bboxes
 
 
-def diounms_sort(bboxes, iou_threshold, sigma=0.3, method="nms", beta_nms=0.6):
-    best_bboxes = []
-    return best_bboxes
-
-
-def postprocess_boxes(pred_bbox, org_img_shape, input_size, score_threshold):
-
-    valid_scale = [0, np.inf]
-    pred_bbox = np.array(pred_bbox)
+def reduce_bbox_candidates(candidates, input_size, threshold):
+    """
+    @param candidates: [[center_x, center_y, w, h, class_id, propability], ...]
+    """
 
     """
     Remove low socre candidates
     This step should be the first !!
     """
-    classes = np.argmax(pred_bbox[:, 5:], axis=-1) + 5
-    scores = pred_bbox[:, 4] * pred_bbox[np.arange(len(pred_bbox)), classes]
-    pred_bbox = pred_bbox[scores > score_threshold, :]
+    classes = np.argmax(candidates[:, 5:], axis=-1)
+    scores = (
+        candidates[:, 4] * candidates[np.arange(len(candidates)), classes + 5]
+    )
+    candidates = candidates[scores > threshold, :]
 
     # Remove out of range candidates
-    pred_bbox = pred_bbox[pred_bbox[:, 0] - pred_bbox[:, 2] / 2 >= 0, :]
-    pred_bbox = pred_bbox[pred_bbox[:, 0] + pred_bbox[:, 2] / 2 <= 1, :]
-    pred_bbox = pred_bbox[pred_bbox[:, 1] - pred_bbox[:, 3] / 2 >= 0, :]
-    pred_bbox = pred_bbox[pred_bbox[:, 1] + pred_bbox[:, 3] / 2 <= 1, :]
+    half = candidates[:, 2:4] * 0.5
+    candidates = candidates[candidates[:, 0] - half[:, 0] >= 0, :]
+    candidates = candidates[candidates[:, 0] + half[:, 0] <= 1, :]
+    candidates = candidates[candidates[:, 1] - half[:, 1] >= 0, :]
+    candidates = candidates[candidates[:, 1] + half[:, 1] <= 1, :]
 
     # Remove small candidates
-    pred_bbox = pred_bbox[
+    candidates = candidates[
         np.logical_and(
-            pred_bbox[:, 2] > 2 / input_size, pred_bbox[:, 3] > 2 / input_size
+            candidates[:, 2] > 2 / input_size,
+            candidates[:, 3] > 2 / input_size,
         ),
         :,
     ]
 
-    # TODO: optimize below
+    classes = np.argmax(candidates[:, 5:], axis=-1)
+    scores = (
+        candidates[:, 4] * candidates[np.arange(len(candidates)), classes + 5]
+    )
 
-    pred_xywh = pred_bbox[:, 0:4] * input_size
-    pred_conf = pred_bbox[:, 4]
-    pred_prob = pred_bbox[:, 5:]
-
-    # # (1) (x, y, w, h) --> (xmin, ymin, xmax, ymax)
-    pred_coor = np.concatenate(
-        [
-            pred_xywh[:, :2] - pred_xywh[:, 2:] * 0.5,
-            pred_xywh[:, :2] + pred_xywh[:, 2:] * 0.5,
-        ],
+    candidates = np.concatenate(
+        [candidates[:, :4], classes[:, np.newaxis], scores[:, np.newaxis],],
         axis=-1,
     )
-    # # (2) (xmin, ymin, xmax, ymax) -> (xmin_org, ymin_org, xmax_org, ymax_org)
-    org_h, org_w = org_img_shape
-    resize_ratio = min(input_size / org_w, input_size / org_h)
+    return candidates
 
-    dw = (input_size - resize_ratio * org_w) / 2
-    dh = (input_size - resize_ratio * org_h) / 2
 
-    pred_coor[:, 0::2] = 1.0 * (pred_coor[:, 0::2] - dw) / resize_ratio
-    pred_coor[:, 1::2] = 1.0 * (pred_coor[:, 1::2] - dh) / resize_ratio
+def fit_predicted_bboxes_to_original(bboxes, original_shape):
+    """
+    @param candidates: [[center_x, center_y, w, h, class_id, propability], ...]
+    """
 
-    classes = np.argmax(pred_prob, axis=-1)
-    scores = pred_conf * pred_prob[np.arange(len(pred_coor)), classes]
+    height = original_shape[0]
+    width = original_shape[1]
 
-    return np.concatenate(
-        [pred_coor, scores[:, np.newaxis], classes[:, np.newaxis]], axis=-1
-    )
+    bboxes = np.copy(bboxes)
+    if width > height:
+        w_h = width / height
+        bboxes[:, 1] = w_h * (bboxes[:, 1] - 0.5) + 0.5
+        bboxes[:, 3] = w_h * bboxes[:, 3]
+    elif width < height:
+        h_w = height / width
+        bboxes[:, 0] = h_w * (bboxes[:, 0] - 0.5) + 0.5
+        bboxes[:, 2] = h_w * bboxes[:, 2]
+
+    return bboxes
 
 
 def freeze_all(model, frozen=True):
