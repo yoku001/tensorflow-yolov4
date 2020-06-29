@@ -24,8 +24,6 @@ SOFTWARE.
 
 import cv2
 import numpy as np
-import os
-import shutil
 import tensorflow as tf
 import time
 from typing import Union
@@ -252,13 +250,22 @@ class YOLOv4:
             training=training,
         )
 
-    def compile(self):
-        self.model.compile()
+    def compile(self, iou_type: str = "giou", learning_rate: float = 1e-5):
+        self.model.compile(iou_type=iou_type, learning_rate=learning_rate)
 
-    def fit(self, datasets, epochs):
+    def fit(self, datasets, epochs, batch_size: int = 6):
         for epoch in range(epochs):
-            for i, dataset in enumerate(datasets):
-                loss = self.model.train_step(dataset)
-                print(
-                    f"epoch: {epoch}, batch: {i}, _iou_loss: {loss[0]}, score_loss: {loss[1]}, classes_loss: {loss[2]}, loss: {loss[3]}"
+            batch = []
+            for i in range(batch_size):
+                batch.append(next(datasets))
+
+            batchset = (
+                tf.concat([x[0] for x in batch], axis=0),
+                tf.concat([x[1] for x in batch], axis=0),
+            )
+            loss = self.model.train_step(batchset)
+            print(
+                "epoch: {: 4}, batch: {: 4}, _iou_loss: {:7.2f}, score_loss: {:7.2f}, classes_loss: {:7.2f}, loss: {:7.2f}".format(
+                    epoch, i + 1, loss[0], loss[1], loss[2], loss[3]
                 )
+            )
