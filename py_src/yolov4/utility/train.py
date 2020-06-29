@@ -54,18 +54,22 @@ def make_compiled_loss(
         )
 
         # Score loss
-
         """
         @param bboxes1: batch, candidates, 1,       xywh
         @param bboxes2: batch, 1         , answers, xywh
         @return batch, candidates, answers
         """
-        mask = y_score[..., 0] == 1.0
-        iou = bbox_iou(
-            y_pred_xywh[..., np.newaxis, :],
-            (tf.boolean_mask(y_xywh, mask))[..., np.newaxis, :, :],
-        )
-        max_iou = tf.expand_dims(tf.reduce_max(iou, axis=-1), axis=-1)
+        max_iou = []
+        for i in range(len(y_score)):  # batch
+            mask = y_score[i, ..., 0] > 0.5
+            iou = bbox_iou(
+                tf.expand_dims(y_pred_xywh[i, ...], axis=-2),
+                tf.expand_dims(tf.boolean_mask(y_xywh[i, ...], mask), axis=-3),
+            )
+            max_iou.append(
+                tf.reshape(tf.reduce_max(iou, axis=-1), shape=(1, -1, 1))
+            )
+        max_iou = tf.concat(max_iou, axis=0)
 
         score_loss = (
             tf.pow(y_score - y_pred_score, 2)
