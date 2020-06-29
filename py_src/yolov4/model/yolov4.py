@@ -28,6 +28,8 @@ from tensorflow.keras import backend, layers, Model
 from .common import YOLOConv2D
 from .backbone import CSPDarknet53
 
+from ..utility import train
+
 
 class Decode(Model):
     def __init__(
@@ -95,6 +97,10 @@ class Decode(Model):
             classes = tf.keras.activations.sigmoid(classes)
 
         x = self.concatenate([xy, wh, score, classes])
+        """
+        batch, grid, grid, anchors, (x,y,w,h,score,classes)
+        => batch, grid*grid*anchors, (x,y,w,h,score,classes)
+        """
         x = self.reshape1(x)
         return x
 
@@ -271,3 +277,27 @@ class YOLOv4(Model):
 
         x = self.concat_total([s_bboxes, m_bboxes, l_bboxes])
         return x
+
+    def compile(self, iou_type: str = "giou", learning_rate: float = 1e-5):
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate,)
+        self._compiled_loss = train.make_compiled_loss(self, iou_type=iou_type)
+
+    def train_step(self, data):
+        """
+        @param data: (x, y) => (input, ground_truth)
+        """
+        x, y = data
+
+        with tf.GradientTape() as tape:
+            y_pred = self(x, training=True)
+            xiou_loss, score_loss, classes_loss = self._compiled_loss(y, y_pred)
+            loss = xiou_loss + score_loss + classes_loss
+
+        # Compute gradients
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+
+        # Update weights
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+
+        return xiou_loss, score_loss, classes_loss, loss
