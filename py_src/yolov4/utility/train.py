@@ -121,7 +121,7 @@ def bbox_iou(bboxes1, bboxes2):
     inter_section = tf.maximum(right_down - left_up, 0.0)
     inter_area = inter_section[..., 0] * inter_section[..., 1]
 
-    union_area = bboxes1_area + bboxes2_area - inter_area
+    union_area = tf.maximum(bboxes1_area + bboxes2_area - inter_area, 0.000001)
 
     iou = inter_area / union_area
 
@@ -129,8 +129,8 @@ def bbox_iou(bboxes1, bboxes2):
 
 
 def bbox_giou(bboxes1, bboxes2):
-    boxes1_area = bboxes1[..., 2] * bboxes1[..., 3]
-    boxes2_area = bboxes2[..., 2] * bboxes2[..., 3]
+    bboxes1_area = bboxes1[..., 2] * bboxes1[..., 3]
+    bboxes2_area = bboxes2[..., 2] * bboxes2[..., 3]
 
     bboxes1 = tf.concat(
         [
@@ -153,7 +153,7 @@ def bbox_giou(bboxes1, bboxes2):
     inter_section = tf.maximum(right_down - left_up, 0.0)
     inter_area = inter_section[..., 0] * inter_section[..., 1]
 
-    union_area = boxes1_area + boxes2_area - inter_area
+    union_area = tf.maximum(bboxes1_area + bboxes2_area - inter_area, 0.000001)
 
     iou = inter_area / union_area
 
@@ -161,9 +161,11 @@ def bbox_giou(bboxes1, bboxes2):
     enclose_right_down = tf.maximum(bboxes1[..., 2:], bboxes2[..., 2:])
 
     enclose_section = enclose_right_down - enclose_left_up
-    enclose_area = enclose_section[..., 0] * enclose_section[..., 1]
+    enclose_area = tf.maximum(
+        enclose_section[..., 0] * enclose_section[..., 1], 0.000001
+    )
 
-    giou = iou - 1.0 * (enclose_area - union_area) / enclose_area
+    giou = iou - (enclose_area - union_area) / enclose_area
 
     return giou
 
