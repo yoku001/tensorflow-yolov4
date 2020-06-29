@@ -77,7 +77,8 @@ def resize(image: np.ndarray, input_size: int, ground_truth: np.ndarray = None):
 
 def draw_bbox(image: np.ndarray, bboxes: np.ndarray, classes: dict):
     """
-    @param bboxes:
+    @parma image: (height, width, channel)
+    @param bboxes: (candidates, 4) or (candidates, 5)
             [[center_x, center_y, w, h, class_id], ...]
             [[center_x, center_y, w, h, class_id, propability], ...]
 
