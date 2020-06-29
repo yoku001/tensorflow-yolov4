@@ -94,10 +94,12 @@ yolo.input_size = 416
 yolo.make_model()
 yolo.load_weights("/home/hhk7734/Desktop/yolov4.conv.137", weights_type="yolo")
 
-yolo.train(
-    train_annote_path="/home/hhk7734/tensorflow-yolov4/data/dataset/val2017.txt",
-    test_annote_path="/home/hhk7734/tensorflow-yolov4/data/dataset/val2017.txt",
-)
+datasets = yolo.load_datasets("/home/hhk7734/tensorflow-yolov4/data/dataset/val2017.txt")
+
+yolo.compile(learning_rate=4e-7)
+yolo.fit(datasets, epochs=4000, batch_size=4)
+
+yolo.model.save_weights("checkpoints")
 ```
 
 ```python
@@ -105,14 +107,19 @@ from yolov4.tf import YOLOv4
 
 yolo = YOLOv4()
 
-yolo.classes = "/home/hhk7734/darknet/data/class.names"
+yolo.classes = "/home/hhk7734/tensorflow-yolov4/data/classes/coco.names"
 
 yolo.input_size = 416
 yolo.make_model()
+yolo.load_weights("/home/hhk7734/Desktop/yolov4.conv.137", weights_type="yolo")
 
-yolo.train(
-    train_annote_path="/home/hhk7734/darknet/data/train.txt",
-    test_annote_path="/home/hhk7734/darknet/data/train.txt",
-    dataset_type="yolo",
+datasets = yolo.load_datasets(
+    "/home/hhk7734/darknet/data/train.txt",
+    datasets_type="yolo",
 )
+
+yolo.compile(learning_rate=4e-7)
+yolo.fit(datasets, epochs=4000, batch_size=4)
+
+yolo.model.save_weights("checkpoints")
 ```
