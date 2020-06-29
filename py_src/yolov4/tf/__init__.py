@@ -30,11 +30,7 @@ import tensorflow as tf
 import time
 from typing import Union
 
-from ..utility import dataset
-from ..utility import media
-from ..utility import train
-from ..utility import utils
-from ..utility import weights
+from ..utility import dataset, media, predict, train, utils, weights
 from ..model import yolov4
 
 
@@ -190,14 +186,14 @@ class YOLOv4:
         image_data = image_data / 255
         image_data = image_data[np.newaxis, ...].astype(np.float32)
 
-        pred_bboxes = self.model.predict(image_data)
-
-        bboxes = utils.postprocess_boxes(
-            pred_bboxes[0], frame.shape[:2], self.input_size, 0.25
+        candidates = self.model.predict(image_data)
+        candidates = predict.reduce_bbox_candidates(
+            candidates[0], self.input_size
         )
-        bboxes = utils.nms(bboxes, 0.213, method="nms")
-
-        return bboxes
+        candidates = predict.fit_predicted_bboxes_to_original(
+            candidates, frame.shape
+        )
+        return candidates
 
     def inference(self, media_path, is_image=True, cv_waitKey_delay=10):
         if is_image:
@@ -211,10 +207,10 @@ class YOLOv4:
             info = "time: %.2f ms" % (1000 * exec_time)
             print(info)
 
-            image = utils.draw_bbox(frame, bboxes, self.classes)
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            image = media.draw_bbox(frame, bboxes, self.classes)
             cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
-            result = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-            cv2.imshow("result", result)
+            cv2.imshow("result", image)
         else:
             vid = cv2.VideoCapture(media_path)
             while True:
@@ -231,10 +227,10 @@ class YOLOv4:
                 info = "time: %.2f ms" % (1000 * exec_time)
                 print(info)
 
-                image = utils.draw_bbox(frame, bboxes, self.classes)
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                image = media.draw_bbox(frame, bboxes, self.classes)
                 cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
-                result = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-                cv2.imshow("result", result)
+                cv2.imshow("result", image)
                 if cv2.waitKey(cv_waitKey_delay) & 0xFF == ord("q"):
                     break
 
@@ -243,239 +239,26 @@ class YOLOv4:
             pass
         cv2.destroyWindow("result")
 
-    def train(
-        self,
-        train_annote_path: str,
-        test_annote_path: str,
-        dataset_type: str = "converted_coco",
-        epochs: int = 50,
-        iou_loss_threshold: float = 0.5,
-        learning_rate_init: float = 1e-3,
-        learning_rate_end: float = 1e-6,
-        log_dir_path: str = "./log",
-        save_interval: int = 1,
-        trained_weights_path: str = "./checkpoints",
+    def load_datasets(
+        self, datasets_path, datasets_type="converted_coco", training=True
     ):
-
-        gpus = tf.config.experimental.list_physical_devices("GPU")
-        if gpus:
-            try:
-                tf.config.experimental.set_memory_growth(gpus[0], True)
-            except RuntimeError as e:
-                print(e)
-
-        trainset = dataset.Dataset(
-            annot_path=train_annote_path,
-            classes=self.classes,
+        return dataset.Dataset(
             anchors=self.anchors,
-            input_sizes=self.input_size,
-            dataset_type=dataset_type,
-        )
-        testset = dataset.Dataset(
-            annot_path=test_annote_path,
-            classes=self.classes,
-            anchors=self.anchors,
-            input_sizes=self.input_size,
-            is_training=False,
-            dataset_type=dataset_type,
+            datasets_path=datasets_path,
+            datasets_type=datasets_type,
+            input_size=self.input_size,
+            num_classes=len(self.classes),
+            strides=self.strides,
+            training=training,
         )
 
-        isfreeze = False
+    def compile(self):
+        self.model.compile()
 
-        if self._has_weights:
-            first_stage_epochs = int(epochs * 0.3)
-        else:
-            first_stage_epochs = 0
-
-        steps_per_epoch = len(trainset)
-        second_stage_epochs = epochs - first_stage_epochs
-        global_steps = tf.Variable(1, trainable=False, dtype=tf.int64)
-        warmup_steps = 2 * steps_per_epoch
-        total_steps = (
-            first_stage_epochs + second_stage_epochs
-        ) * steps_per_epoch
-
-        optimizer = tf.keras.optimizers.Adam()
-        if os.path.exists(log_dir_path):
-            shutil.rmtree(log_dir_path)
-        writer = tf.summary.create_file_writer(log_dir_path)
-
-        def decode_train(bboxes, index: int):
-            conv_shape = tf.shape(bboxes)
-            batch_size = conv_shape[0]
-            output_size = conv_shape[1]
-
-            (dxdy, wh, raw_score, raw_classes) = tf.split(
-                bboxes, (2, 2, 1, len(self.classes)), axis=-1
-            )
-
-            grid = np.meshgrid(np.arange(output_size), np.arange(output_size))
-            grid = np.expand_dims(np.stack(grid, axis=-1), axis=2)
-            """
-            grid(i, j, 1, 2) => grid top left coordinates
-            [
-                [ [[0, 0]], [[1, 0]], [[2, 0]], ...],
-                [ [[0, 1]], [[1, 1]], [[2, 1]], ...],
-            ]
-            """
-
-            # grid(1, i, j, 3, 2)
-            grid = np.tile(np.expand_dims(grid, axis=0), [1, 1, 1, 3, 1])
-            grid = grid.astype(np.float)
-
-            pred_xy = (
-                ((dxdy - 0.5) * self.xyscales[index]) + 0.5 + grid
-            ) * self.strides[index]
-            pred_wh = tf.exp(wh) * self.anchors[index]
-            pred_score = tf.sigmoid(raw_score)
-            pred_classes = tf.sigmoid(raw_classes)
-
-            return tf.concat(
-                [pred_xy, pred_wh, pred_score, pred_classes], axis=-1
-            )
-
-        def train_step(image_data, target):
-            with tf.GradientTape() as tape:
-                bboxes = self.model(image_data, training=True)
-                giou_loss = conf_loss = prob_loss = 0
-
-                # optimizing process
-                for i in range(3):
-                    conv, pred = bboxes[i], decode_train(bboxes[i], i)
-                    loss_items = train.compute_loss(
-                        pred,
-                        conv,
-                        target[i][0],
-                        target[i][1],
-                        strides=self.strides,
-                        num_class=len(self.classes),
-                        iou_loss_threshold=iou_loss_threshold,
-                        i=i,
-                    )
-                    giou_loss += loss_items[0]
-                    conf_loss += loss_items[1]
-                    prob_loss += loss_items[2]
-
-                total_loss = giou_loss + conf_loss + prob_loss
-
-                gradients = tape.gradient(
-                    total_loss, self.model.trainable_variables
-                )
-                optimizer.apply_gradients(
-                    zip(gradients, self.model.trainable_variables)
-                )
-                tf.print(
-                    "=> STEP %4d   lr: %.6f   giou_loss: %4.2f   conf_loss: %4.2f   "
-                    "prob_loss: %4.2f   total_loss: %4.2f"
-                    % (
-                        global_steps,
-                        optimizer.lr.numpy(),
-                        giou_loss,
-                        conf_loss,
-                        prob_loss,
-                        total_loss,
-                    )
-                )
-                # update learning rate
-                global_steps.assign_add(1)
-                if global_steps < warmup_steps:
-                    lr = global_steps / warmup_steps * learning_rate_init
-                else:
-                    lr = learning_rate_end + 0.5 * (
-                        learning_rate_init - learning_rate_end
-                    ) * (
-                        (
-                            1
-                            + tf.cos(
-                                (global_steps - warmup_steps)
-                                / (total_steps - warmup_steps)
-                                * np.pi
-                            )
-                        )
-                    )
-                optimizer.lr.assign(lr.numpy())
-
-                # writing summary data
-                writer.as_default()
-                tf.summary.scalar("lr", optimizer.lr, step=global_steps)
-                tf.summary.scalar(
-                    "loss/total_loss", total_loss, step=global_steps
-                )
-                tf.summary.scalar(
-                    "loss/giou_loss", giou_loss, step=global_steps
-                )
-                tf.summary.scalar(
-                    "loss/conf_loss", conf_loss, step=global_steps
-                )
-                tf.summary.scalar(
-                    "loss/prob_loss", prob_loss, step=global_steps
-                )
-                writer.flush()
-
-        def test_step(image_data, target):
-            with tf.GradientTape() as tape:
-                bboxes = self.model(image_data, training=True)
-                giou_loss = conf_loss = prob_loss = 0
-
-                # optimizing process
-                for i in range(3):
-                    conv, pred = bboxes[i], decode_train(bboxes[i], i)
-                    loss_items = train.compute_loss(
-                        pred,
-                        conv,
-                        target[i][0],
-                        target[i][1],
-                        strides=self.strides,
-                        num_class=len(self.classes),
-                        iou_loss_threshold=iou_loss_threshold,
-                        i=i,
-                    )
-                    giou_loss += loss_items[0]
-                    conf_loss += loss_items[1]
-                    prob_loss += loss_items[2]
-
-                total_loss = giou_loss + conf_loss + prob_loss
-
-                tf.print(
-                    "=> TEST STEP %4d   giou_loss: %4.2f   conf_loss: %4.2f   "
-                    "prob_loss: %4.2f   total_loss: %4.2f"
-                    % (
-                        global_steps,
-                        giou_loss,
-                        conf_loss,
-                        prob_loss,
-                        total_loss,
-                    )
-                )
-
+    def fit(self, datasets, epochs):
         for epoch in range(epochs):
-            if epoch < first_stage_epochs:
-                if not isfreeze:
-                    isfreeze = True
-                    for name in [
-                        "yolo_conv2d_93",
-                        "yolo_conv2d_101",
-                        "yolo_conv2d_109",
-                    ]:
-                        freeze = self.model.get_layer(name)
-                        utils.freeze_all(freeze)
-            elif epoch >= first_stage_epochs:
-                if isfreeze:
-                    isfreeze = False
-                    for name in [
-                        "yolo_conv2d_93",
-                        "yolo_conv2d_101",
-                        "yolo_conv2d_109",
-                    ]:
-                        freeze = self.model.get_layer(name)
-                        utils.unfreeze_all(freeze)
-
-            for image_data, target in trainset:
-                train_step(image_data, target)
-            for image_data, target in testset:
-                test_step(image_data, target)
-
-            if epoch % save_interval == 0:
-                self.model.save_weights(trained_weights_path)
-
-        self.model.save_weights(trained_weights_path)
+            for i, dataset in enumerate(datasets):
+                loss = self.model.train_step(dataset)
+                print(
+                    f"epoch: {epoch}, batch: {i}, _iou_loss: {loss[0]}, score_loss: {loss[1]}, classes_loss: {loss[2]}, loss: {loss[3]}"
+                )
