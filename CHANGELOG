@@ -1,3 +1,19 @@
+tensorflow-yolov4 (0.11.0) unstable; urgency=medium
+
+  * tf: remove utils.draw_bbox in predict()
+  * yolov4: rename files and functions and change order
+  * utility: utils: remove get_anchors()
+  * utility: media: impelment resize(), draw_bbox()
+  * utility: utils: implement DIoU_NMS
+  * utility: utils: fix dimensional calculation problems
+  * utility: refactor dataset
+  * tf: remove train
+  * utility: train: implement make_compiled_loss()
+  * utility: media: fix bug that could not resize some images
+  * utility: train: remove problem of division by zero
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Mon, 29 Jun 2020 21:05:39 +0900
+
 tensorflow-yolov4 (0.10.0) unstable; urgency=medium
 
   * core: yolov4: refactor decode()
