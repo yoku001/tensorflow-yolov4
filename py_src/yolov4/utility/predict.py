@@ -137,6 +137,9 @@ def DIoU_NMS(candidates, threshold):
             else:
                 break
 
+    if len(bboxes) == 0:
+        return np.zeros(shape=(1, 6))
+
     return np.concatenate(bboxes, axis=0)
 
 
