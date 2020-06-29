@@ -83,6 +83,8 @@ detector.inference(
 
 ## Training
 
+**Not successful yet.**
+
 ```python
 from yolov4.tf import YOLOv4
 
