@@ -47,10 +47,12 @@ def resize(image: np.ndarray, input_size: int, ground_truth: np.ndarray = None):
         new_height = height
         resized_image = np.copy(image)
 
-    dw = (input_size - new_width) // 2
-    dh = (input_size - new_height) // 2
+    dw = int(input_size - new_width)
+    dh = int(input_size - new_height)
 
     if dw != 0 or dh != 0:
+        dw = dw // 2
+        dh = dh // 2
         padded_image = np.full((input_size, input_size, 3), 255, dtype=np.uint8)
         padded_image[
             dh : new_height + dh, dw : new_width + dw, :
