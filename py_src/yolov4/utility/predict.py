@@ -141,7 +141,10 @@ def DIoU_NMS(candidates, threshold):
 
 
 def reduce_bbox_candidates(
-    candidates, input_size, score_threshold, DIoU_threshold
+    candidates,
+    input_size,
+    score_threshold: float = 0.25,
+    DIoU_threshold: float = 0.3,
 ):
     """
     @param candidates: [[center_x, center_y, w, h, class_id, propability], ...]
