@@ -21,12 +21,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import time
+from typing import Union
 
 import cv2
 import numpy as np
 import tensorflow as tf
-import time
-from typing import Union
 
 from ..utility import dataset, media, predict, train, utils, weights
 from ..model import yolov4
@@ -237,27 +237,27 @@ class YOLOv4:
             pass
         cv2.destroyWindow("result")
 
-    def load_datasets(
-        self, datasets_path, datasets_type="converted_coco", training=True
+    def load_dataset(
+        self, dataset_path, dataset_type="converted_coco", training=True
     ):
         return dataset.Dataset(
             anchors=self.anchors,
-            datasets_path=datasets_path,
-            datasets_type=datasets_type,
+            dataset_path=dataset_path,
+            dataset_type=dataset_type,
+            data_augmentation=True if training else False,
             input_size=self.input_size,
             num_classes=len(self.classes),
             strides=self.strides,
-            training=training,
         )
 
     def compile(self, iou_type: str = "giou", learning_rate: float = 1e-5):
         self.model.compile(iou_type=iou_type, learning_rate=learning_rate)
 
-    def fit(self, datasets, epochs, batch_size: int = 6):
+    def fit(self, data_set, epochs, batch_size: int = 4):
         for epoch in range(epochs):
             batch = []
-            for i in range(batch_size):
-                batch.append(next(datasets))
+            for _ in range(batch_size):
+                batch.append(next(data_set))
 
             batchset = (
                 tf.concat([x[0] for x in batch], axis=0),
@@ -265,7 +265,7 @@ class YOLOv4:
             )
             loss = self.model.train_step(batchset)
             print(
-                "epoch: {: 4}, batch: {: 4}, _iou_loss: {:7.2f}, score_loss: {:7.2f}, classes_loss: {:7.2f}, loss: {:7.2f}".format(
-                    epoch, i + 1, loss[0], loss[1], loss[2], loss[3]
+                "epoch: {: 4}, _iou_loss: {:7.2f}, score_loss: {:7.2f}, classes_loss: {:7.2f}, loss: {:7.2f}".format(
+                    epoch, loss[0], loss[1], loss[2], loss[3]
                 )
             )
