@@ -191,45 +191,76 @@ def bbox_giou(bboxes1, bboxes2):
     return giou
 
 
-def bbox_ciou(boxes1, boxes2):
-    boxes1_coor = tf.concat(
+def bbox_ciou(bboxes1, bboxes2):
+    """
+    Complete IoU
+    @param bboxes1: (a, b, ..., 4)
+    @param bboxes2: (A, B, ..., 4)
+        x:X is 1:n or n:n or n:1
+
+    @return (max(a,A), max(b,B), ...)
+
+    ex) (4,):(3,4) -> (3,)
+        (2,1,4):(2,3,4) -> (2,3)
+    """
+    bboxes1_area = bboxes1[..., 2] * bboxes1[..., 3]
+    bboxes2_area = bboxes2[..., 2] * bboxes2[..., 3]
+
+    bboxes1_coor = tf.concat(
         [
-            boxes1[..., :2] - boxes1[..., 2:] * 0.5,
-            boxes1[..., :2] + boxes1[..., 2:] * 0.5,
+            bboxes1[..., :2] - bboxes1[..., 2:] * 0.5,
+            bboxes1[..., :2] + bboxes1[..., 2:] * 0.5,
         ],
         axis=-1,
     )
-    boxes2_coor = tf.concat(
+    bboxes2_coor = tf.concat(
         [
-            boxes2[..., :2] - boxes2[..., 2:] * 0.5,
-            boxes2[..., :2] + boxes2[..., 2:] * 0.5,
+            bboxes2[..., :2] - bboxes2[..., 2:] * 0.5,
+            bboxes2[..., :2] + bboxes2[..., 2:] * 0.5,
         ],
         axis=-1,
     )
 
-    left = tf.maximum(boxes1_coor[..., 0], boxes2_coor[..., 0])
-    up = tf.maximum(boxes1_coor[..., 1], boxes2_coor[..., 1])
-    right = tf.maximum(boxes1_coor[..., 2], boxes2_coor[..., 2])
-    down = tf.maximum(boxes1_coor[..., 3], boxes2_coor[..., 3])
+    left_up = tf.maximum(bboxes1_coor[..., :2], bboxes2_coor[..., :2])
+    right_down = tf.minimum(bboxes1_coor[..., 2:], bboxes2_coor[..., 2:])
 
-    c = (right - left) * (right - left) + (up - down) * (up - down)
-    iou = bbox_iou(boxes1, boxes2)
+    inter_section = tf.maximum(right_down - left_up, 0.0)
+    inter_area = inter_section[..., 0] * inter_section[..., 1]
 
-    u = (boxes1[..., 0] - boxes2[..., 0]) * (
-        boxes1[..., 0] - boxes2[..., 0]
-    ) + (boxes1[..., 1] - boxes2[..., 1]) * (boxes1[..., 1] - boxes2[..., 1])
-    d = u / c
+    union_area = bboxes1_area + bboxes2_area - inter_area
 
-    ar_gt = boxes2[..., 2] / boxes2[..., 3]
-    ar_pred = boxes1[..., 2] / boxes1[..., 3]
+    iou = tf.math.divide_no_nan(inter_area, union_area)
 
-    ar_loss = (
-        4
-        / (np.pi * np.pi)
-        * (tf.atan(ar_gt) - tf.atan(ar_pred))
-        * (tf.atan(ar_gt) - tf.atan(ar_pred))
+    enclose_left_up = tf.minimum(bboxes1_coor[..., :2], bboxes2_coor[..., :2])
+    enclose_right_down = tf.maximum(
+        bboxes1_coor[..., 2:], bboxes2_coor[..., 2:]
     )
-    alpha = ar_loss / (1 - iou + ar_loss + 0.000001)
-    ciou_term = d + alpha * ar_loss
 
-    return iou - ciou_term
+    enclose_section = enclose_right_down - enclose_left_up
+
+    c_2 = enclose_section[..., 0] ** 2 + enclose_section[..., 1] ** 2
+
+    center_diagonal = bboxes2[..., :2] - bboxes1[..., :2]
+
+    rho_2 = center_diagonal[..., 0] ** 2 + center_diagonal[..., 1] ** 2
+
+    diou = iou - tf.math.divide_no_nan(rho_2, c_2)
+
+    v = (
+        (
+            tf.math.atan(
+                tf.math.divide_no_nan(bboxes1[..., 2], bboxes1[..., 3])
+            )
+            - tf.math.atan(
+                tf.math.divide_no_nan(bboxes2[..., 2], bboxes2[..., 3])
+            )
+        )
+        * 2
+        / np.pi
+    ) ** 2
+
+    alpha = tf.math.divide_no_nan(v, 1 - iou + v)
+
+    ciou = diou - alpha * v
+
+    return ciou
