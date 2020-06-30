@@ -36,26 +36,26 @@ class Dataset(object):
     def __init__(
         self,
         anchors: np.ndarray = None,
-        datasets_path: str = None,
-        datasets_type: str = "converted_coco",
+        dataset_path: str = None,
+        dataset_type: str = "converted_coco",
+        data_augmentation: bool = True,
         input_size: int = 416,
         num_classes: int = None,
         strides: np.ndarray = None,
-        training: bool = True,
     ):
         self.anchors_ratio = anchors.reshape(-1, 2) / input_size
-        self.datasets_path = datasets_path
-        self.datasets_type = datasets_type
+        self.dataset_path = dataset_path
+        self.dataset_type = dataset_type
+        self.data_augmentation = data_augmentation
         self.grid_size = input_size // strides
         self.input_size = input_size
         self.num_candidates = np.sum(np.power(self.grid_size, 2)) * len(anchors)
         self.num_classes = num_classes
-        self.training = training
 
-        self.datasets = self.load_dataset()
+        self.dataset = self.load_dataset()
 
         self.count = 0
-        np.random.shuffle(self.datasets)
+        np.random.shuffle(self.dataset)
 
     def load_dataset(self):
         """
@@ -64,11 +64,11 @@ class Dataset(object):
             converted_coco: unit=> pixel
                 [[image_path, [[x, y, w, h, class_id], ...]], ...]
         """
-        datasets = []
+        _dataset = []
 
-        with open(self.datasets_path, "r") as fd:
+        with open(self.dataset_path, "r") as fd:
             txt = fd.readlines()
-            if self.datasets_type == "converted_coco":
+            if self.dataset_type == "converted_coco":
                 for line in txt:
                     # line: "<image_path> xmin,ymin,xmax,ymax,class_id ..."
                     bboxes = line.strip().split()
@@ -84,9 +84,9 @@ class Dataset(object):
                             bbox[3] - bbox[1],
                             bbox[4],
                         )
-                    datasets.append([image_path, xywhc_s])
+                    _dataset.append([image_path, xywhc_s])
 
-            elif self.datasets_type == "yolo":
+            elif self.dataset_type == "yolo":
                 for line in txt:
                     # line: "<image_path>"
                     image_path = line.strip()
@@ -102,8 +102,8 @@ class Dataset(object):
                                 *bbox[1:],
                                 bbox[0],
                             )
-                        datasets.append([image_path, xywhc_s])
-        return datasets
+                        _dataset.append([image_path, xywhc_s])
+        return _dataset
 
     def bboxes_to_ground_truth(self, bboxes):
         """
@@ -199,7 +199,7 @@ class Dataset(object):
 
         image = cv2.imread(image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        if self.datasets_type == "converted_coco":
+        if self.dataset_type == "converted_coco":
             height, width, _ = image.shape
             dataset[1] = dataset[1] / np.array(
                 [width, height, width, height, 1]
@@ -212,7 +212,7 @@ class Dataset(object):
         ground_truth = self.bboxes_to_ground_truth(resized_bboxes)
         ground_truth = np.expand_dims(ground_truth, axis=0)
 
-        if self.training:
+        if self.data_augmentation:
             # TODO
             # BoF functions
             pass
@@ -220,18 +220,18 @@ class Dataset(object):
 
     def __iter__(self):
         self.count = 0
-        np.random.shuffle(self.datasets)
+        np.random.shuffle(self.dataset)
         return self
 
     def __next__(self):
-        x, y = self.preprocess_dataset(self.datasets[self.count])
+        x, y = self.preprocess_dataset(self.dataset[self.count])
 
         self.count += 1
-        if self.count == len(self.datasets):
-            np.random.shuffle(self.datasets)
+        if self.count == len(self.dataset):
+            np.random.shuffle(self.dataset)
             self.count = 0
 
         return x, y
 
     def __len__(self):
-        return len(self.datasets)
+        return len(self.dataset)
