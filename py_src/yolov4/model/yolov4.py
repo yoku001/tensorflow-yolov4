@@ -52,13 +52,11 @@ class Decode(Model):
             3,
             5 + self.num_classes,
         )
-        """
-        grid(1, i, j, 3, 2) => grid top left coordinates
-        [
-            [ [[0, 0]], [[1, 0]], [[2, 0]], ...],
-            [ [[0, 1]], [[1, 1]], [[2, 1]], ...],
-        ]
-        """
+        # grid(1, i, j, 3, 2) => grid top left coordinates
+        # [
+        #     [ [[0, 0]], [[1, 0]], [[2, 0]], ...],
+        #     [ [[0, 1]], [[1, 1]], [[2, 1]], ...],
+        # ]
         self.xy_grid = tf.stack(
             tf.meshgrid(tf.range(input_shape[1]), tf.range(input_shape[1])),
             axis=-1,
@@ -74,17 +72,16 @@ class Decode(Model):
         )
 
     def call(self, x, training: bool = False):
+        # TODO: remove reshape0
         x = self.reshape0(x)
         dxdy, wh, score, classes = tf.split(
             x, (2, 2, 1, self.num_classes), axis=-1
         )
 
-        """
-        x = f(dx) + left_x
-        y = f(dy) + top_y
-        w = anchor_w * exp(w)
-        h = anchor_h * exp(h)
-        """
+        # x = f(dx) + left_x
+        # y = f(dy) + top_y
+        # w = anchor_w * exp(w)
+        # h = anchor_h * exp(h)
         dxdy = tf.keras.activations.sigmoid(dxdy)
         xy = (
             (dxdy - 0.5) * self.xyscale + 0.5 + self.xy_grid
@@ -97,10 +94,8 @@ class Decode(Model):
             classes = tf.keras.activations.sigmoid(classes)
 
         x = self.concatenate([xy, wh, score, classes])
-        """
-        batch, grid, grid, anchors, (x,y,w,h,score,classes)
-        => batch, grid*grid*anchors, (x,y,w,h,score,classes)
-        """
+        # batch, grid, grid, anchors, (x,y,w,h,score,classes)
+        # => batch, grid*grid*anchors, (x,y,w,h,score,classes)
         x = self.reshape1(x)
         return x
 
@@ -244,7 +239,7 @@ class YOLOv4(Model):
 
         s_bboxes = self.conv92(x2)
         s_bboxes = self.conv93(s_bboxes)
-        # (batch, 3x, 3x, 3, (4 + 1 + num_classes))
+        # (batch, (4x * 4x * 3), (4 + 1 + num_classes))
         s_bboxes = self.decode93(s_bboxes, training)
 
         x2 = self.conv94(x2)
@@ -258,7 +253,7 @@ class YOLOv4(Model):
 
         m_bboxes = self.conv100(x2)
         m_bboxes = self.conv101(m_bboxes)
-        # (batch, 2x, 2x, 3, (4 + 1 + num_classes))
+        # (batch, (2x * 2x * 3), (4 + 1 + num_classes))
         m_bboxes = self.decode101(m_bboxes, training)
 
         x2 = self.conv102(x2)
@@ -272,9 +267,10 @@ class YOLOv4(Model):
 
         l_bboxes = self.conv108(x2)
         l_bboxes = self.conv109(l_bboxes)
-        # (batch, x, x, 3, (4 + 1 + num_classes))
+        # (batch, (x * x * 3), (4 + 1 + num_classes))
         l_bboxes = self.decode109(l_bboxes, training)
 
+        # (batch, (63 * x * x), (4 + 1 + num_classes)), x = input_size // 32
         x = self.concat_total([s_bboxes, m_bboxes, l_bboxes])
         return x
 
