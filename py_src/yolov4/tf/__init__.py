@@ -248,6 +248,7 @@ class YOLOv4:
             input_size=self.input_size,
             num_classes=len(self.classes),
             strides=self.strides,
+            xyscales=self.xyscales,
         )
 
     def compile(self, iou_type: str = "giou", learning_rate: float = 1e-5):
