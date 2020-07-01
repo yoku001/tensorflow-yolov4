@@ -32,12 +32,10 @@ from ..utility import train
 
 
 class Decode(Model):
-    def __init__(
-        self, anchors_ratio, cell_ratio: int, num_classes: int, xyscale
-    ):
+    def __init__(self, anchors_ratio, num_classes: int, xyscale):
         super(Decode, self).__init__()
         self.anchors_ratio = anchors_ratio
-        self.cell_ratio = cell_ratio
+        self.cell_ratio = None
         self.num_classes = num_classes
         self.xyscale = xyscale
 
@@ -46,6 +44,8 @@ class Decode(Model):
         self.reshape1 = layers.Reshape((-1,))
 
     def build(self, input_shape):
+        self.cell_ratio = 1 / input_shape[1]
+
         self.reshape0.target_shape = (
             input_shape[1],
             input_shape[1],
@@ -78,10 +78,10 @@ class Decode(Model):
             x, (2, 2, 1, self.num_classes), axis=-1
         )
 
-        # x = f(dx) + left_x
-        # y = f(dy) + top_y
-        # w = anchor_w * exp(w)
-        # h = anchor_h * exp(h)
+        # x = (f(dx) + left_x) * strides / input_size
+        # y = (f(dy) + top_y) * strides / input_size
+        # w = (anchor_w * exp(w)) / input_size
+        # h = (anchor_h * exp(h)) / input_size
         dxdy = tf.keras.activations.sigmoid(dxdy)
         xy = (
             (dxdy - 0.5) * self.xyscale + 0.5 + self.xy_grid
@@ -148,7 +148,6 @@ class YOLOv4(Model):
         )
         self.decode93 = Decode(
             anchors_ratio=anchors[0] / input_size,
-            cell_ratio=8 / input_size,
             num_classes=num_classes,
             xyscale=xyscales[0],
         )
@@ -172,7 +171,6 @@ class YOLOv4(Model):
         )
         self.decode101 = Decode(
             anchors_ratio=anchors[1] / input_size,
-            cell_ratio=16 / input_size,
             num_classes=num_classes,
             xyscale=xyscales[1],
         )
@@ -206,7 +204,6 @@ class YOLOv4(Model):
         )
         self.decode109 = Decode(
             anchors_ratio=anchors[2] / input_size,
-            cell_ratio=32 / input_size,
             num_classes=num_classes,
             xyscale=xyscales[2],
         )
