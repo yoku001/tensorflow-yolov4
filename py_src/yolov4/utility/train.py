@@ -27,10 +27,12 @@ import tensorflow as tf
 
 
 def make_compiled_loss(
-    model, iou_type: str = "giou", iou_loss_threshold: float = 0.5
+    model, iou_type: str = "ciou", iou_loss_threshold: float = 0.5
 ):
     if iou_type == "giou":
         xiou_func = bbox_giou
+    elif iou_type == "ciou":
+        xiou_func = bbox_ciou
 
     def compiled_loss(y, y_pred):
         """
