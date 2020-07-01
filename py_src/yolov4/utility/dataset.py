@@ -42,15 +42,16 @@ class Dataset(object):
         input_size: int = 416,
         num_classes: int = None,
         strides: np.ndarray = None,
+        xyscales: np.ndarray = None,
     ):
-        self.anchors_ratio = anchors.reshape(-1, 2) / input_size
+        self.anchors_ratio = anchors / input_size
         self.dataset_path = dataset_path
         self.dataset_type = dataset_type
         self.data_augmentation = data_augmentation
         self.grid_size = input_size // strides
         self.input_size = input_size
-        self.num_candidates = np.sum(np.power(self.grid_size, 2)) * len(anchors)
         self.num_classes = num_classes
+        self.xysclaes = xyscales
 
         self.dataset = self.load_dataset()
 
@@ -111,9 +112,18 @@ class Dataset(object):
 
         @return [[x, y, w, h, score, c0, c1, ...], ...]
         """
-        ground_truth = np.zeros(
-            (self.num_candidates, 5 + self.num_classes), dtype=np.float32
-        )
+        ground_truth = [
+            np.zeros(
+                (
+                    self.grid_size[i],
+                    self.grid_size[i],
+                    3,
+                    5 + self.num_classes,
+                ),
+                dtype=np.float32,
+            )
+            for i in range(3)
+        ]
 
         for bbox in bboxes:
             # [x, y, w, h, class_id]
@@ -126,61 +136,129 @@ class Dataset(object):
             uniform_distribution = np.full(
                 self.num_classes, 1.0 / self.num_classes, dtype=np.float32
             )
-            deta = 0.01
-            smooth_onehot = onehot * (1 - deta) + deta * uniform_distribution
+            delta = 0.01
+            smooth_onehot = (1 - delta) * onehot + delta * uniform_distribution
 
-            scaler = np.tile(self.grid_size.reshape(-1, 1), (1, 6)).reshape(
-                -1, 2
-            )
-            grid = np.floor(xywh[0:2] * scaler, dtype=np.float32)
-            anchors_xywh = np.zeros((9, 4), dtype=np.float32)
-            anchors_xywh[:, 0:2] = (grid + 0.5) / scaler
-            anchors_xywh[:, 2:4] = self.anchors_ratio
+            ious = []
+            exist_positive = False
+            for i in range(3):
+                anchors_xywh = np.zeros((3, 4), dtype=np.float32)
+                anchors_xywh[:, 0:2] = xywh[0:2]
+                anchors_xywh[:, 2:4] = self.anchors_ratio[i]
+                iou = train.bbox_iou(xywh, anchors_xywh)
+                ious.append(iou)
+                iou_mask = iou > 0.3
 
-            iou = train.bbox_iou(xywh, anchors_xywh)
+                if np.any(iou_mask):
+                    xy_grid = xywh[0:2] * self.grid_size[i]
+                    xy_index = np.floor(xy_grid)
+                    dxdy = xy_grid - xy_index
+                    delta = (self.xysclaes[i] - 1) / 2
 
-            iou_mask = iou > 0.3
+                    exist_positive = True
+                    for anchor_index, mask in enumerate(iou_mask):
+                        if mask:
+                            left_mask = dxdy[0] < delta
+                            right_mask = dxdy[0] > 1 - delta
+                            top_mask = dxdy[1] < delta
+                            bottom_mask = dxdy[1] > 1 - delta
 
-            if np.any(iou_mask):
-                for i, mask in enumerate(iou_mask):
-                    if mask:
-                        """
-                a: anchor
-                s_a_0, s_a_1, s_a_2, m_a_0, m_a_1, m_a_2, l_a_0, l_a_1, l_a_2
+                            coordinates = []
+                            if left_mask:
+                                coordinates.append(xy_index + (-1, 0))
+                                if top_mask:
+                                    coordinates.append(xy_index + (-1, -1))
+                                elif bottom_mask:
+                                    coordinates.append(xy_index + (-1, 1))
+                            elif right_mask:
+                                coordinates.append(xy_index + (1, 0))
+                                if top_mask:
+                                    coordinates.append(xy_index + (1, -1))
+                                elif bottom_mask:
+                                    coordinates.append(xy_index + (1, 1))
+                            else:
+                                coordinates.append(xy_index)
+                                if top_mask:
+                                    coordinates.append(xy_index + (0, -1))
+                                elif bottom_mask:
+                                    coordinates.append(xy_index + (0, 1))
+                            for coordinate in coordinates:
+                                _anchor = anchor_index
+                                _x = max(
+                                    min(
+                                        int(coordinate[0] + 0.01),
+                                        self.grid_size[i] - 1,
+                                    ),
+                                    0,
+                                )
+                                _y = max(
+                                    min(
+                                        int(coordinate[1] + 0.01),
+                                        self.grid_size[i] - 1,
+                                    ),
+                                    0,
+                                )
+                                ground_truth[i][_y, _x, _anchor, 0:4] = xywh
+                                ground_truth[i][_y, _x, _anchor, 4:5] = 1.0
+                                ground_truth[i][
+                                    _y, _x, _anchor, 5:
+                                ] = smooth_onehot
 
-                s_grid, s_grid, s_anchors, (x,y,w,h,score,classes)
-                m_grid, m_grid, m_anchors, (x,y,w,h,score,classes)
-                l_grid, l_grid, l_anchors, (x,y,w,h,score,classes)
-                => grid*grid*anchors, (x,y,w,h,score,classes)
-                        """
-                        index = 0
-                        size_index = i // 3
-                        anchor_index = i % 3
-                        for j in range(size_index):
-                            index += self.grid_size[j] * self.grid_size[j] * 3
-                        index += grid[i][1] * self.grid_size[size_index] * 3
-                        index += grid[i][0] * 3
-                        index += anchor_index
-                        index = int(index)
-
-                        ground_truth[index, 0:4] = xywh
-                        ground_truth[index, 4:5] = 1.0
-                        ground_truth[index, 5:] = smooth_onehot
-            else:
-                i = np.argmax(iou)
-                index = 0
-                size_index = i // 3
+            if not exist_positive:
+                i = np.argmax(np.array(ious).reshape(-1))
+                i = i // 3
                 anchor_index = i % 3
-                for j in range(size_index):
-                    index += self.grid_size[j] * self.grid_size[j] * 3
-                index += grid[i][1] * self.grid_size[size_index] * 3
-                index += grid[i][0] * 3
-                index += anchor_index
-                index = int(index)
 
-                ground_truth[index, 0:4] = xywh
-                ground_truth[index, 4:5] = 1.0
-                ground_truth[index, 5:] = smooth_onehot
+                xy_grid = xywh[0:2] * self.grid_size[i]
+                xy_index = np.floor(xy_grid)
+                dxdy = xy_grid - xy_index
+                delta = (self.xysclaes[i] - 1) / 2
+                left_mask = dxdy[0] < delta
+                right_mask = dxdy[0] > 1 - delta
+                top_mask = dxdy[1] < delta
+                bottom_mask = dxdy[1] > 1 - delta
+
+                coordinates = []
+                if left_mask:
+                    coordinates.append(xy_index + (-1, 0))
+                    if top_mask:
+                        coordinates.append(xy_index + (-1, -1))
+                    elif bottom_mask:
+                        coordinates.append(xy_index + (-1, 1))
+                elif right_mask:
+                    coordinates.append(xy_index + (1, 0))
+                    if top_mask:
+                        coordinates.append(xy_index + (1, -1))
+                    elif bottom_mask:
+                        coordinates.append(xy_index + (1, 1))
+                else:
+                    coordinates.append(xy_index)
+                    if top_mask:
+                        coordinates.append(xy_index + (0, -1))
+                    elif bottom_mask:
+                        coordinates.append(xy_index + (0, 1))
+
+                for coordinate in coordinates:
+                    _anchor = anchor_index
+                    _x = max(
+                        min(int(coordinate[0] + 0.01), self.grid_size[i] - 1,),
+                        0,
+                    )
+                    _y = max(
+                        min(int(coordinate[1] + 0.01), self.grid_size[i] - 1,),
+                        0,
+                    )
+                    ground_truth[i][_y, _x, _anchor, 0:4] = xywh
+                    ground_truth[i][_y, _x, _anchor, 4:5] = 1.0
+                    ground_truth[i][_y, _x, _anchor, 5:] = smooth_onehot
+
+        ground_truth = np.concatenate(
+            [
+                ground_truth[i].reshape((-1, 5 + self.num_classes))
+                for i in range(3)
+            ],
+            axis=0,
+        )
 
         return ground_truth
 
