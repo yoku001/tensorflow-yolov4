@@ -167,16 +167,16 @@ class YOLOv4:
         # [batch, height, width, channel]
         self.model(tf.keras.layers.Input([self.input_size, self.input_size, 3]))
 
-    def load_weights(self, path: str, weights_type: str = "tf"):
+    def load_weights(self, weights_path: str, weights_type: str = "tf"):
         """
         Usage:
             yolo.load_weights("yolov4.weights", weights_type="yolo")
             yolo.load_weights("checkpoints")
         """
         if weights_type == "yolo":
-            weights.load_yolov4(self.model, path)
+            weights.load_yolov4(self.model, weights_path)
         elif weights_type == "tf":
-            self.model.load_weights(path).expect_partial()
+            self.model.load_weights(weights_path).expect_partial()
 
         self._has_weights = True
 
