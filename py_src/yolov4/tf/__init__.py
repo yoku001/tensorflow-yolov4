@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+from os import path
 import time
 from typing import Union
 
@@ -194,6 +195,8 @@ class YOLOv4:
         return candidates
 
     def inference(self, media_path, is_image=True, cv_waitKey_delay=10):
+        if not path.exists(media_path):
+            raise FileNotFoundError("{} does not exist".format(media_path))
         if is_image:
             frame = cv2.imread(media_path)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
