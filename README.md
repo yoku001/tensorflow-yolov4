@@ -34,6 +34,11 @@ python3 -m pip install tensorflow
 
 Ref: [https://www.tensorflow.org/lite/guide/python](https://www.tensorflow.org/lite/guide/python)
 
+## Objective
+
+1. [ ] Train and predict using TensorFlow 2 only
+1. [ ] Run yolov4 on Coral board(TPU).
+
 ## Performance
 
 <p align="center"><img src="data/performance.png" width="640"\></p>
@@ -65,6 +70,8 @@ yolo.inference(
 ```
 
 ### tensorflow lite
+
+**Don't try this. It is out of date and will not run now. Some code modifications are required.**
 
 ```python
 import yolov4.tflite as yolo
