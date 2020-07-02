@@ -237,7 +237,7 @@ class YOLOv4(Model):
         s_bboxes = self.conv92(x2)
         s_bboxes = self.conv93(s_bboxes)
         # (batch, (4x * 4x * 3), (4 + 1 + num_classes))
-        s_bboxes = self.decode93(s_bboxes, training)
+        s_bboxes = self.decode93(s_bboxes, training=training)
 
         x2 = self.conv94(x2)
         x2 = self.concat84_94([x2, x1])
@@ -251,7 +251,7 @@ class YOLOv4(Model):
         m_bboxes = self.conv100(x2)
         m_bboxes = self.conv101(m_bboxes)
         # (batch, (2x * 2x * 3), (4 + 1 + num_classes))
-        m_bboxes = self.decode101(m_bboxes, training)
+        m_bboxes = self.decode101(m_bboxes, training=training)
 
         x2 = self.conv102(x2)
         x2 = self.concat77_102([x2, route3])
@@ -265,7 +265,7 @@ class YOLOv4(Model):
         l_bboxes = self.conv108(x2)
         l_bboxes = self.conv109(l_bboxes)
         # (batch, (x * x * 3), (4 + 1 + num_classes))
-        l_bboxes = self.decode109(l_bboxes, training)
+        l_bboxes = self.decode109(l_bboxes, training=training)
 
         # (batch, (63 * x * x), (4 + 1 + num_classes)), x = input_size // 32
         x = self.concat_total([s_bboxes, m_bboxes, l_bboxes])
