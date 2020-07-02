@@ -28,7 +28,7 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
-from ..utility import dataset, media, predict, train, utils, weights
+from ..utility import dataset, media, predict, train, weights
 from ..model import yolov4
 
 
@@ -98,7 +98,7 @@ class YOLOv4:
     @classes.setter
     def classes(self, data: Union[str, dict]):
         if isinstance(data, str):
-            self._classes = utils.read_class_names(data)
+            self._classes = dataset.read_classes_names(data)
         elif isinstance(data, dict):
             self._classes = data
         else:

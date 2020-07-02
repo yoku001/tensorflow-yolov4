@@ -313,3 +313,12 @@ class Dataset(object):
 
     def __len__(self):
         return len(self.dataset)
+
+
+def read_classes_names(classes_name_path):
+    """loads class name from a file"""
+    names = {}
+    with open(classes_name_path, "r") as data:
+        for ID, name in enumerate(data):
+            names[ID] = name.strip("\n")
+    return names
