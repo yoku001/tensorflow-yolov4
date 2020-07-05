@@ -150,73 +150,85 @@ def reduce_bbox_candidates(
     DIoU_threshold: float = 0.3,
 ):
     """
-    @param candidates: Dim(-1, (x, y, w, h, score, classes))
+    @param candidates: Dim(batch, -1, (x, y, w, h, score, classes))
 
-    @return [[x, y, w, h, class_id, probability], ...]
+    @return Dim(batch, -1, (x, y, w, h, class_id, probability))
     """
+    _candidates = []
+    for candidate in candidates:
+        # Remove low socre candidates
+        # This step should be the first !!
+        class_ids = np.argmax(candidate[:, 5:], axis=-1)
+        scores = (
+            candidate[:, 4]
+            * candidate[np.arange(len(candidate)), class_ids + 5]
+        )
+        candidate = candidate[scores > score_threshold, :]
 
-    # Remove low socre candidates
-    # This step should be the first !!
-    class_ids = np.argmax(candidates[:, 5:], axis=-1)
-    scores = (
-        candidates[:, 4] * candidates[np.arange(len(candidates)), class_ids + 5]
-    )
-    candidates = candidates[scores > score_threshold, :]
+        # Remove out of range candidates
+        half = candidate[:, 2:4] * 0.5
+        mask = candidate[:, 0] - half[:, 0] >= 0
+        candidate = candidate[mask, :]
+        half = half[mask, :]
+        mask = candidate[:, 0] + half[:, 0] <= 1
+        candidate = candidate[mask, :]
+        half = half[mask, :]
+        mask = candidate[:, 1] - half[:, 1] >= 0
+        candidate = candidate[mask, :]
+        half = half[mask, :]
+        mask = candidate[:, 1] + half[:, 1] <= 1
+        candidate = candidate[mask, :]
 
-    # Remove out of range candidates
-    half = candidates[:, 2:4] * 0.5
-    mask = candidates[:, 0] - half[:, 0] >= 0
-    candidates = candidates[mask, :]
-    half = half[mask, :]
-    mask = candidates[:, 0] + half[:, 0] <= 1
-    candidates = candidates[mask, :]
-    half = half[mask, :]
-    mask = candidates[:, 1] - half[:, 1] >= 0
-    candidates = candidates[mask, :]
-    half = half[mask, :]
-    mask = candidates[:, 1] + half[:, 1] <= 1
-    candidates = candidates[mask, :]
+        # Remove small candidates
+        candidate = candidate[
+            np.logical_and(
+                candidate[:, 2] > 2 / input_size,
+                candidate[:, 3] > 2 / input_size,
+            ),
+            :,
+        ]
 
-    # Remove small candidates
-    candidates = candidates[
-        np.logical_and(
-            candidates[:, 2] > 2 / input_size,
-            candidates[:, 3] > 2 / input_size,
-        ),
-        :,
-    ]
+        class_ids = np.argmax(candidate[:, 5:], axis=-1)
+        scores = (
+            candidate[:, 4]
+            * candidate[np.arange(len(candidate)), class_ids + 5]
+        )
 
-    class_ids = np.argmax(candidates[:, 5:], axis=-1)
-    scores = (
-        candidates[:, 4] * candidates[np.arange(len(candidates)), class_ids + 5]
-    )
+        candidate = np.concatenate(
+            [
+                candidate[:, :4],
+                class_ids[:, np.newaxis],
+                scores[:, np.newaxis],
+            ],
+            axis=-1,
+        )
 
-    candidates = np.concatenate(
-        [candidates[:, :4], class_ids[:, np.newaxis], scores[:, np.newaxis],],
-        axis=-1,
-    )
+        candidate = DIoU_NMS(candidate, DIoU_threshold)
 
-    candidates = DIoU_NMS(candidates, DIoU_threshold)
+        _candidates.append(candidate)
 
-    return candidates
+    return _candidates
 
 
 def fit_predicted_bboxes_to_original(bboxes, original_shape):
     """
-    @param candidates: [[center_x, center_y, w, h, class_id, propability], ...]
+    @param candidates: Dim(batch, -1, (x, y, w, h, class_id, probability))
     """
 
     height = original_shape[0]
     width = original_shape[1]
 
-    bboxes = np.copy(bboxes)
-    if width > height:
-        w_h = width / height
-        bboxes[:, 1] = w_h * (bboxes[:, 1] - 0.5) + 0.5
-        bboxes[:, 3] = w_h * bboxes[:, 3]
-    elif width < height:
-        h_w = height / width
-        bboxes[:, 0] = h_w * (bboxes[:, 0] - 0.5) + 0.5
-        bboxes[:, 2] = h_w * bboxes[:, 2]
+    _bboxes = []
+    for bbox in bboxes:
+        bbox = np.copy(bbox)
+        if width > height:
+            w_h = width / height
+            bbox[:, 1] = w_h * (bbox[:, 1] - 0.5) + 0.5
+            bbox[:, 3] = w_h * bbox[:, 3]
+        elif width < height:
+            h_w = height / width
+            bbox[:, 0] = h_w * (bbox[:, 0] - 0.5) + 0.5
+            bbox[:, 2] = h_w * bbox[:, 2]
+        _bboxes.append(bbox)
 
-    return bboxes
+    return _bboxes
