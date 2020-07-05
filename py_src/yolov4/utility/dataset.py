@@ -110,11 +110,13 @@ class Dataset(object):
         """
         @param bboxes: [[x, y, w, h, class_id], ...]
 
-        @return [[x, y, w, h, score, c0, c1, ...], ...]
+        @return [s, m, l]
+            Dim(0, grid_y, grid_x, anchors, (x, y, w, h, score, classes))
         """
         ground_truth = [
             np.zeros(
                 (
+                    1,
                     self.grid_size[i],
                     self.grid_size[i],
                     3,
@@ -198,10 +200,10 @@ class Dataset(object):
                                     ),
                                     0,
                                 )
-                                ground_truth[i][_y, _x, _anchor, 0:4] = xywh
-                                ground_truth[i][_y, _x, _anchor, 4:5] = 1.0
+                                ground_truth[i][0, _y, _x, _anchor, 0:4] = xywh
+                                ground_truth[i][0, _y, _x, _anchor, 4:5] = 1.0
                                 ground_truth[i][
-                                    _y, _x, _anchor, 5:
+                                    0, _y, _x, _anchor, 5:
                                 ] = smooth_onehot
 
             if not exist_positive:
@@ -248,17 +250,9 @@ class Dataset(object):
                         min(int(coordinate[1] + 0.01), self.grid_size[i] - 1,),
                         0,
                     )
-                    ground_truth[i][_y, _x, _anchor, 0:4] = xywh
-                    ground_truth[i][_y, _x, _anchor, 4:5] = 1.0
-                    ground_truth[i][_y, _x, _anchor, 5:] = smooth_onehot
-
-        ground_truth = np.concatenate(
-            [
-                ground_truth[i].reshape((-1, 5 + self.num_classes))
-                for i in range(3)
-            ],
-            axis=0,
-        )
+                    ground_truth[i][0, _y, _x, _anchor, 0:4] = xywh
+                    ground_truth[i][0, _y, _x, _anchor, 4:5] = 1.0
+                    ground_truth[i][0, _y, _x, _anchor, 5:] = smooth_onehot
 
         return ground_truth
 
@@ -286,14 +280,15 @@ class Dataset(object):
         resized_image, resized_bboxes = media.resize(
             image, self.input_size, dataset[1]
         )
-        resized_image = np.expand_dims(resized_image / 255.0, axis=0)
-        ground_truth = self.bboxes_to_ground_truth(resized_bboxes)
-        ground_truth = np.expand_dims(ground_truth, axis=0)
 
         if self.data_augmentation:
             # TODO
             # BoF functions
             pass
+
+        resized_image = np.expand_dims(resized_image / 255.0, axis=0)
+        ground_truth = self.bboxes_to_ground_truth(resized_bboxes)
+
         return resized_image, ground_truth
 
     def __iter__(self):
