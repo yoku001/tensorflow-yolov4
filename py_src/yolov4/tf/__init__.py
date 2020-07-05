@@ -99,7 +99,7 @@ class YOLOv4:
     @classes.setter
     def classes(self, data: Union[str, dict]):
         if isinstance(data, str):
-            self._classes = dataset.read_classes_names(data)
+            self._classes = media.read_classes_names(data)
         elif isinstance(data, dict):
             self._classes = data
         else:

@@ -21,9 +21,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
-import cv2
 import colorsys
+
+# Don't import tensorflow
+import cv2
 import numpy as np
 
 
@@ -147,3 +148,14 @@ def draw_bbox(image: np.ndarray, bboxes: np.ndarray, classes: dict):
         )
 
     return image
+
+
+def read_classes_names(classes_name_path):
+    """
+    @return {id: class name}
+    """
+    names = {}
+    with open(classes_name_path, "r") as data:
+        for ID, name in enumerate(data):
+            names[ID] = name.strip("\n")
+    return names
