@@ -23,7 +23,7 @@ SOFTWARE.
 """
 
 import tensorflow as tf
-from tensorflow.keras import backend, layers, Model
+from tensorflow.keras import activations, backend, layers, Model
 
 from .common import YOLOConv2D
 from .backbone import CSPDarknet53
@@ -83,7 +83,7 @@ class Decode(Model):
 
         # x = (f(tx) + left_x) * strides / input_size
         # y = (f(ty) + top_y) * strides / input_size
-        txty = (tf.keras.activations.sigmoid(txty) - 0.5) * self.xyscale + 0.5
+        txty = (activations.sigmoid(txty) - 0.5) * self.xyscale + 0.5
         xy = (txty + self.xy_grid) * self.cell_ratio
 
         # w = (anchor_w * exp(tw)) / input_size
@@ -91,8 +91,8 @@ class Decode(Model):
         wh = self.anchors_ratio * backend.exp(twth)
 
         if not training:
-            score = tf.keras.activations.sigmoid(score)
-            classes = tf.keras.activations.sigmoid(classes)
+            score = activations.sigmoid(score)
+            classes = activations.sigmoid(classes)
 
         x = self.concatenate([xy, wh, score, classes])
         return x
