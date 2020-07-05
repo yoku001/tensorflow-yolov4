@@ -53,6 +53,25 @@ class Dataset:
         self.num_classes = num_classes
         self.xysclaes = xyscales
 
+        self.grid = [
+            np.tile(
+                np.reshape(
+                    np.stack(
+                        np.meshgrid(
+                            (np.arange(self.grid_size[i]) + 0.5)
+                            / self.grid_size[i],
+                            (np.arange(self.grid_size[i]) + 0.5)
+                            / self.grid_size[i],
+                        ),
+                        axis=-1,
+                    ),
+                    (1, self.grid_size[i], self.grid_size[i], 1, 2),
+                ),
+                (1, 1, 1, 3, 1),
+            ).astype(np.float32)
+            for i in range(3)
+        ]
+
         self.dataset = self.load_dataset()
 
         self.count = 0
@@ -126,6 +145,9 @@ class Dataset:
             )
             for i in range(3)
         ]
+        ground_truth[0][..., 0:2] = self.grid[0]
+        ground_truth[1][..., 0:2] = self.grid[1]
+        ground_truth[2][..., 0:2] = self.grid[2]
 
         for bbox in bboxes:
             # [x, y, w, h, class_id]
