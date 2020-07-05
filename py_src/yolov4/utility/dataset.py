@@ -32,7 +32,7 @@ from . import media
 from . import train
 
 
-class Dataset(object):
+class Dataset:
     def __init__(
         self,
         anchors: np.ndarray = None,
@@ -98,7 +98,7 @@ class Dataset(object):
                         for i, bbox in enumerate(bboxes):
                             # bbox = class_id, x, y, w, h
                             bbox = bbox.strip()
-                            bbox = list(map(float, bbox.split(",")))
+                            bbox = list(map(float, bbox.split(" ")))
                             xywhc_s[i, :] = (
                                 *bbox[1:],
                                 bbox[0],
@@ -297,6 +297,10 @@ class Dataset(object):
         return self
 
     def __next__(self):
+        """
+        @return image, ground_truth
+            ground_truth == (s_truth, m_truth, l_truth)
+        """
         x, y = self.preprocess_dataset(self.dataset[self.count])
 
         self.count += 1
