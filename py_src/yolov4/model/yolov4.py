@@ -38,10 +38,10 @@ class Decode(Model):
         self.cell_ratio = None
         self.num_classes = num_classes
         self.xyscale = xyscale
+        self.xy_grid = None
 
         self.reshape0 = layers.Reshape((-1,))
         self.concatenate = layers.Concatenate(axis=-1)
-        self.reshape1 = layers.Reshape((-1,))
 
     def build(self, input_shape):
         self.cell_ratio = 1 / input_shape[1]
@@ -52,6 +52,7 @@ class Decode(Model):
             3,
             5 + self.num_classes,
         )
+
         # grid(1, i, j, 3, 2) => grid top left coordinates
         # [
         #     [ [[0, 0]], [[1, 0]], [[2, 0]], ...],
@@ -66,37 +67,34 @@ class Decode(Model):
         )
         self.xy_grid = tf.tile(self.xy_grid, [1, 1, 1, 3, 1])
         self.xy_grid = tf.cast(self.xy_grid, tf.float32)
-        self.reshape1.target_shape = (
-            input_shape[1] * input_shape[1] * 3,
-            5 + self.num_classes,
-        )
 
     def call(self, x, training: bool = False):
-        # TODO: remove reshape0
+        """
+        @param x: Dim(batch, grid_y, grid_x,
+                        anchors * (tx, ty, tw, th, score, classes))
+
+        @return
+            Dim(batch, grid_y, gird_x, anchors, (x, y, w, h, score, classes ))
+        """
         x = self.reshape0(x)
-        dxdy, wh, score, classes = tf.split(
+        txty, twth, score, classes = tf.split(
             x, (2, 2, 1, self.num_classes), axis=-1
         )
 
-        # x = (f(dx) + left_x) * strides / input_size
-        # y = (f(dy) + top_y) * strides / input_size
-        # w = (anchor_w * exp(w)) / input_size
-        # h = (anchor_h * exp(h)) / input_size
-        dxdy = tf.keras.activations.sigmoid(dxdy)
-        xy = (
-            (dxdy - 0.5) * self.xyscale + 0.5 + self.xy_grid
-        ) * self.cell_ratio
+        # x = (f(tx) + left_x) * strides / input_size
+        # y = (f(ty) + top_y) * strides / input_size
+        txty = (tf.keras.activations.sigmoid(txty) - 0.5) * self.xyscale + 0.5
+        xy = (txty + self.xy_grid) * self.cell_ratio
 
-        wh = self.anchors_ratio * backend.exp(wh)
+        # w = (anchor_w * exp(tw)) / input_size
+        # h = (anchor_h * exp(th)) / input_size
+        wh = self.anchors_ratio * backend.exp(twth)
 
         if not training:
             score = tf.keras.activations.sigmoid(score)
             classes = tf.keras.activations.sigmoid(classes)
 
         x = self.concatenate([xy, wh, score, classes])
-        # batch, grid, grid, anchors, (x,y,w,h,score,classes)
-        # => batch, grid*grid*anchors, (x,y,w,h,score,classes)
-        x = self.reshape1(x)
         return x
 
 
@@ -106,14 +104,9 @@ class YOLOv4(Model):
     Spatial Attention Module(SAM)
     Bounding Box(BBox)
 
-    bboxes: (batch, *grid(x, x), num_anchors, (xywh + score + num_classes))
+    prediction: Dim(batch, n, n, anchors, (x, y, w, h, score, classes))
     Each grid cell has anchors.
     Each anchor has (x, y, w, h, score, c0, c1, c2, ...)
-
-    inference: x, y, w, h, sig(s), sig(c0), ...
-    training:  x, y, w, h, s,      c0,      ...
-
-    @return (batch, candidates,(xywh + score + num_classes))
     """
 
     def __init__(self, anchors, input_size, num_classes: int, xyscales):
@@ -207,7 +200,6 @@ class YOLOv4(Model):
             num_classes=num_classes,
             xyscale=xyscales[2],
         )
-        self.concat_total = layers.Concatenate(axis=1)
 
     def call(self, x, training: bool = False):
         route1, route2, route3 = self.csp_darknet53(x)
@@ -236,7 +228,7 @@ class YOLOv4(Model):
 
         s_bboxes = self.conv92(x2)
         s_bboxes = self.conv93(s_bboxes)
-        # (batch, (4x * 4x * 3), (4 + 1 + num_classes))
+        # Dim(batch, 4n, 4n, 3, (4 + 1 + num_classes))
         s_bboxes = self.decode93(s_bboxes, training=training)
 
         x2 = self.conv94(x2)
@@ -250,7 +242,7 @@ class YOLOv4(Model):
 
         m_bboxes = self.conv100(x2)
         m_bboxes = self.conv101(m_bboxes)
-        # (batch, (2x * 2x * 3), (4 + 1 + num_classes))
+        # Dim(batch, 2n, 2n, 3, (4 + 1 + num_classes))
         m_bboxes = self.decode101(m_bboxes, training=training)
 
         x2 = self.conv102(x2)
@@ -264,12 +256,10 @@ class YOLOv4(Model):
 
         l_bboxes = self.conv108(x2)
         l_bboxes = self.conv109(l_bboxes)
-        # (batch, (x * x * 3), (4 + 1 + num_classes))
+        # Dim (batch, n, n, 3, (4 + 1 + num_classes))
         l_bboxes = self.decode109(l_bboxes, training=training)
 
-        # (batch, (63 * x * x), (4 + 1 + num_classes)), x = input_size // 32
-        x = self.concat_total([s_bboxes, m_bboxes, l_bboxes])
-        return x
+        return s_bboxes, m_bboxes, l_bboxes
 
     def compile(self, iou_type: str = "giou", learning_rate: float = 1e-5):
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate,)
