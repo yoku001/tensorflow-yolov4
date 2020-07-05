@@ -141,7 +141,14 @@ disable=print-statement,
         comprehension-escape,
         missing-class-docstring,
         invalid-name,
-        bad-continuation
+        bad-continuation,
+        too-many-ancestors,
+        arguments-differ,
+        too-many-instance-attributes,
+        too-many-branches,
+        too-many-locals,
+        too-many-statements,
+        too-many-nested-blocks
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
