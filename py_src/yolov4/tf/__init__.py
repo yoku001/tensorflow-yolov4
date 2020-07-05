@@ -186,9 +186,17 @@ class YOLOv4:
         image_data = image_data[np.newaxis, ...].astype(np.float32)
 
         candidates = self.model.predict(image_data)
-        candidates = predict.reduce_bbox_candidates(
-            candidates[0], self.input_size
-        )
+        _candidates = []
+        for candidate in candidates:
+            batch_size = candidate.shape[0]
+            grid_size = candidate.shape[1]
+            _candidates.append(
+                tf.reshape(
+                    candidate, shape=(batch_size, grid_size * grid_size * 3, -1)
+                )
+            )
+        candidates = np.concatenate(_candidates, axis=1)
+        candidates = predict.reduce_bbox_candidates(candidates, self.input_size)
         candidates = predict.fit_predicted_bboxes_to_original(
             candidates, frame.shape
         )
@@ -209,7 +217,7 @@ class YOLOv4:
             print(info)
 
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            image = media.draw_bbox(frame, bboxes, self.classes)
+            image = media.draw_bbox(frame, bboxes[0], self.classes)
             cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
             cv2.imshow("result", image)
         else:
@@ -229,7 +237,7 @@ class YOLOv4:
                 print(info)
 
                 frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                image = media.draw_bbox(frame, bboxes, self.classes)
+                image = media.draw_bbox(frame, bboxes[0], self.classes)
                 cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
                 cv2.imshow("result", image)
                 if cv2.waitKey(cv_waitKey_delay) & 0xFF == ord("q"):
