@@ -180,6 +180,19 @@ class YOLOv4:
 
         self._has_weights = True
 
+    def save_as_tflite(self, tflite_path):
+        """
+        Save model and weights as tflite
+
+        Usage:
+            yolo.save_as_tflite("yolov4")
+        """
+        converter = tf.lite.TFLiteConverter.from_keras_model(self.model)
+        converter.allow_custom_ops = True
+        tflite_model = converter.convert()
+        with tf.io.gfile.GFile(tflite_path, "wb") as fd:
+            fd.write(tflite_model)
+
     def predict(self, frame: np.ndarray):
         image_data = media.resize(frame, self.input_size)
         image_data = image_data / 255
