@@ -150,16 +150,16 @@ def reduce_bbox_candidates(
     DIoU_threshold: float = 0.3,
 ):
     """
-    @param candidates: [[center_x, center_y, w, h, class_id, propability], ...]
+    @param candidates: Dim(-1, (x, y, w, h, score, classes))
+
+    @return [[x, y, w, h, class_id, probability], ...]
     """
 
-    """
-    Remove low socre candidates
-    This step should be the first !!
-    """
-    classes = np.argmax(candidates[:, 5:], axis=-1)
+    # Remove low socre candidates
+    # This step should be the first !!
+    class_ids = np.argmax(candidates[:, 5:], axis=-1)
     scores = (
-        candidates[:, 4] * candidates[np.arange(len(candidates)), classes + 5]
+        candidates[:, 4] * candidates[np.arange(len(candidates)), class_ids + 5]
     )
     candidates = candidates[scores > score_threshold, :]
 
@@ -186,13 +186,13 @@ def reduce_bbox_candidates(
         :,
     ]
 
-    classes = np.argmax(candidates[:, 5:], axis=-1)
+    class_ids = np.argmax(candidates[:, 5:], axis=-1)
     scores = (
-        candidates[:, 4] * candidates[np.arange(len(candidates)), classes + 5]
+        candidates[:, 4] * candidates[np.arange(len(candidates)), class_ids + 5]
     )
 
     candidates = np.concatenate(
-        [candidates[:, :4], classes[:, np.newaxis], scores[:, np.newaxis],],
+        [candidates[:, :4], class_ids[:, np.newaxis], scores[:, np.newaxis],],
         axis=-1,
     )
 
