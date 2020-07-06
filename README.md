@@ -71,22 +71,7 @@ yolo.inference(
 
 ### tensorflow lite
 
-**Don't try this. It is out of date and will not run now. Some code modifications are required.**
-
-```python
-import yolov4.tflite as yolo
-
-detector = yolo.YOLOv4(
-    names_path="/home/hhk7734/tensorflow-yolov4/data/classes/coco.names",
-    tflite_path="/home/hhk7734/Desktop/yolov4.tflite",
-)
-
-detector.inference(
-    media_path="/home/hhk7734/tensorflow-yolov4/data/road.mp4",
-    is_image=False,
-    cv_waitKey_delay=1,
-)
-```
+`tf.keras.layers.UpSampling2D()` seems to be in TensorFlow >= 2.3.0
 
 ## Training
 
