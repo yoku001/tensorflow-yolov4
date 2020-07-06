@@ -33,6 +33,7 @@ def make_compiled_loss(
     classes_threshold: float = 0.25,
     score_classes_threshold: float = 0.25,
 ):
+    # pylint: disable=unused-argument
     if iou_type == "giou":
         xiou_func = bbox_giou
     elif iou_type == "ciou":
@@ -40,76 +41,52 @@ def make_compiled_loss(
 
     def compiled_loss(y, y_pred):
         """
-        @param y:      (batch, candidates, (x, y, w, h, score, c0, c1, ...))
-        @param y_pred: (batch, candidates, (x, y, w, h, score, c0, c1, ...))
+        @param y:      (s_truth, m_truth, l_truth)
+            Dim(batch, grid_y, grid_x, anchors, (x, y, w, h, score, classes))
+        @param y_pred: (s_pred, m_pred, l_pred)
+            Dim(batch, grid_y, grid_x, anchors, (x, y, w, h, score, classes))
         """
-        y_xywh = y[..., 0:4]
-        y_score = y[..., 4:5]
-        y_classes = y[..., 5:]
-
-        batch_size = y.shape[0]
-
-        y_pred_xywh = y_pred[..., 0:4]
-        y_pred_raw_score = y_pred[..., 4:5]
-        y_pred_raw_classes = y_pred[..., 5:]
-
-        y_pred_score = tf.keras.activations.sigmoid(y_pred_raw_score)
-
-        # XIoU loss
-        xiou = tf.expand_dims(xiou_func(y_xywh, y_pred_xywh), axis=-1)
-        xiou_loss = y_score * (1 - xiou)
-
-        # Score loss
-        max_iou = []
-        for i in range(batch_size):
-            # @param bboxes1: candidates, 1,       xywh
-            # @param bboxes2: 1         , answers, xywh
-            # @return candidates, answers
-            object_mask = tf.reshape(y_score[i, ...], shape=(-1,)) > 0.5
-            iou = bbox_iou(
-                tf.expand_dims(y_pred_xywh[i, ...], axis=1),
-                tf.expand_dims(
-                    tf.boolean_mask(y_xywh[i, ...], object_mask), axis=0,
-                ),
+        xiou_loss = []
+        classes_loss = []
+        for i in range(3):
+            batch_size, grid_size, _, _, _ = y[i].shape
+            truth = tf.reshape(
+                y[i], shape=(batch_size, grid_size * grid_size * 3, -1)
+            )
+            pred = tf.reshape(
+                y_pred[i], shape=(batch_size, grid_size * grid_size * 3, -1)
             )
 
-            max_iou.append(
-                tf.reshape(tf.reduce_max(iou, axis=-1), shape=(1, -1, 1))
+            truth_xywh = truth[..., 0:4]
+            truth_score = truth[..., 4:5]
+            truth_classes = truth[..., 5:]
+
+            pred_xywh = pred[..., 0:4]
+            pred_raw_score = pred[..., 4:5]
+            pred_raw_classes = pred[..., 5:]
+
+            pred_score = tf.keras.activations.sigmoid(pred_raw_score)
+            pred_classes = tf.keras.activations.sigmoid(pred_raw_classes)
+
+            # XIoU loss
+            xiou = tf.expand_dims(xiou_func(truth_xywh, pred_xywh), axis=-1)
+            _xiou_loss = truth_score * (1 - xiou)
+
+            # Class loss
+            _classes_loss = (
+                truth_score * truth_classes
+                + (1 - truth_score) * pred_score * pred_classes
+            ) * tf.nn.sigmoid_cross_entropy_with_logits(
+                labels=truth_classes, logits=pred_raw_classes
             )
-        max_iou = tf.concat(max_iou, axis=0)
-        low_iou_mask = max_iou < iou_threshold
 
-        max_classes = tf.reduce_max(y_pred_raw_classes, axis=-1, keepdims=True)
-        low_classes_mask = max_classes < classes_threshold
+            xiou_loss.append(tf.reduce_sum(_xiou_loss))
+            classes_loss.append(tf.reduce_sum(_classes_loss))
 
-        low_iou_prob_mask = tf.math.logical_or(low_iou_mask, low_classes_mask)
-        low_iou_prob_mask = tf.cast(low_iou_prob_mask, tf.float32)
-
-        score_scale = tf.abs(y_pred_xywh[..., 2:3] * y_pred_xywh[..., 3:4])
-
-        score_loss = (
-            y_score + (1.0 - y_score) * score_scale * low_iou_prob_mask
-        ) * tf.nn.sigmoid_cross_entropy_with_logits(
-            labels=y_score, logits=y_pred_raw_score
+        return (
+            tf.convert_to_tensor(xiou_loss, dtype=tf.float32),
+            tf.convert_to_tensor(classes_loss, dtype=tf.float32),
         )
-
-        # Classes loss
-        score_classes = y_pred_score * y_pred_raw_classes
-        high_score_classes_mask = score_classes > score_classes_threshold
-        high_score_classes_mask = tf.cast(high_score_classes_mask, tf.float32)
-
-        classes_loss = (
-            y_score * y_classes
-            + (1 - y_score) * high_score_classes_mask * low_iou_prob_mask
-        ) * tf.nn.sigmoid_cross_entropy_with_logits(
-            labels=y_classes, logits=y_pred_raw_classes
-        )
-
-        xiou_loss = tf.reduce_mean(tf.reduce_sum(xiou_loss, axis=[1, 2]))
-        score_loss = tf.reduce_mean(tf.reduce_sum(score_loss, axis=[1, 2]))
-        classes_loss = tf.reduce_mean(tf.reduce_sum(classes_loss, axis=[1, 2]))
-
-        return xiou_loss, score_loss, classes_loss
 
     return compiled_loss
 
