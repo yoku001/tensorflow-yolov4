@@ -156,6 +156,7 @@ class YOLOv4:
             self._xyscales = xyscales
 
     def make_model(self):
+        # pylint: disable=missing-function-docstring
         self._has_weights = False
         tf.keras.backend.clear_session()
         self.model = yolov4.YOLOv4(
@@ -185,7 +186,7 @@ class YOLOv4:
         Save model and weights as tflite
 
         Usage:
-            yolo.save_as_tflite("yolov4")
+            yolo.save_as_tflite("yolov4.tflite")
         """
         converter = tf.lite.TFLiteConverter.from_keras_model(self.model)
         converter.allow_custom_ops = True
@@ -278,19 +279,51 @@ class YOLOv4:
     def compile(self, iou_type: str = "giou", learning_rate: float = 1e-5):
         self.model.compile(iou_type=iou_type, learning_rate=learning_rate)
 
-    def fit(self, data_set, epochs, batch_size: int = 4):
+    def fit(
+        self, data_set, epochs, batch_size: int = 32, subdivisions: int = 16
+    ):
+        """
+        Train
+        """
+        batch = batch_size // subdivisions
+        total_bboxes = 0
         for epoch in range(epochs):
-            batch = []
-            for _ in range(batch_size):
-                batch.append(next(data_set))
+            start_time = time.time()
+            avg_loss = 0
+            for _ in range(subdivisions):
+                _batch_data = []
+                for _ in range(batch):
+                    _batch_data.append(next(data_set))
 
-            batchset = (
-                tf.concat([x[0] for x in batch], axis=0),
-                tf.concat([x[1] for x in batch], axis=0),
-            )
-            loss = self.model.train_step(batchset)
-            print(
-                "epoch: {: 4}, _iou_loss: {:7.2f}, score_loss: {:7.2f}, classes_loss: {:7.2f}, loss: {:7.2f}".format(
-                    epoch, loss[0], loss[1], loss[2], loss[3]
+                batch_data = (
+                    tf.concat([x[0] for x in _batch_data], axis=0),
+                    (
+                        tf.concat([x[1][0] for x in _batch_data], axis=0),
+                        tf.concat([x[1][1] for x in _batch_data], axis=0),
+                        tf.concat([x[1][2] for x in _batch_data], axis=0),
+                    ),
+                )
+
+                train_data = self.model.train_step(batch_data)
+                for i in range(3):
+                    tf.print(
+                        "count: {:2d} class_loss = {:7.2f}, xiou_loss = {:4.2f}, total_loss = {:7.2f}".format(
+                            int(train_data[0][i]),
+                            train_data[1][i],
+                            train_data[2][i],
+                            train_data[3][i],
+                        )
+                    )
+                    total_bboxes += int(train_data[0][i])
+                avg_loss += train_data[4]
+                tf.print("total_bbox = {}".format(total_bboxes))
+
+            avg_loss /= subdivisions
+
+            tf.print(
+                "\nepoch: {}, {:7.2f} avg loss, {:5.2f} sec\n".format(
+                    epoch + 1, avg_loss, time.time() - start_time
                 )
             )
+            if epoch % 100 == 99:
+                self.model.save_weights("checkpoints_{}".format(epoch + 1))
