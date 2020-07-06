@@ -110,7 +110,7 @@ class YOLOv4(Model):
     """
 
     def __init__(self, anchors, input_size, num_classes: int, xyscales):
-        super(YOLOv4, self).__init__()
+        super(YOLOv4, self).__init__(name="YOLOv4")
         self.csp_darknet53 = CSPDarknet53()
 
         self.conv78 = YOLOConv2D(filters=256, kernel_size=1, activation="leaky")
@@ -268,19 +268,25 @@ class YOLOv4(Model):
     def train_step(self, data):
         """
         @param data: (x, y) => (input, ground_truth)
+            ground_truth == (s_truth, m_truth, l_truth)
         """
-        x, y = data
+        images, ground_truth = data
+        num_bboxes = [0, 0, 0]
+        for i in range(3):
+            num_bboxes[i] = tf.reduce_sum(ground_truth[i][..., 4])
 
         with tf.GradientTape() as tape:
-            y_pred = self(x, training=True)
-            xiou_loss, score_loss, classes_loss = self._compiled_loss(y, y_pred)
-            loss = xiou_loss + score_loss + classes_loss
+            # Forward
+            y_pred = self(images, training=True)
+            xiou_loss, classes_loss = self._compiled_loss(ground_truth, y_pred)
+            total_loss = xiou_loss + classes_loss
+            loss = tf.reduce_sum(total_loss)
 
-        # Compute gradients
+        # Compute gradients, Backward
         trainable_vars = self.trainable_variables
         gradients = tape.gradient(loss, trainable_vars)
 
         # Update weights
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
 
-        return xiou_loss, score_loss, classes_loss, loss
+        return num_bboxes, classes_loss, xiou_loss, total_loss, loss
