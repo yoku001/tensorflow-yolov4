@@ -21,34 +21,17 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
-import tensorflow as tf
-from tensorflow.keras import layers
-from tensorflow.keras.layers import Layer
 from typing import Union
 
-
-class BatchNormalization(tf.keras.layers.BatchNormalization):
-    """
-    "Frozen state" and "inference mode" are two separate concepts.
-    `layer.trainable = False` is to freeze the layer, so the layer will use
-    stored moving `var` and `mean` in the "inference mode", and both `gama`
-    and `beta` will not be updated !
-    """
-
-    def call(self, x, training=False):
-        if not training:
-            training = tf.constant(False)
-        training = tf.logical_and(training, self.trainable)
-        return super().call(x, training)
+import tensorflow as tf
+from tensorflow.keras import backend, layers, Sequential
+from tensorflow.keras.layers import Layer
 
 
 class Mish(Layer):
-    def __init__(self, **kwargs):
-        super(Mish, self).__init__(**kwargs)
-
-    def call(self, inputs):
-        return inputs * tf.tanh(tf.math.log(1 + tf.exp(inputs)))
+    def call(self, x):
+        # pylint: disable=no-self-use
+        return x * backend.tanh(backend.log(1 + backend.exp(x)))
 
 
 class YOLOConv2D(Layer):
@@ -61,22 +44,19 @@ class YOLOConv2D(Layer):
         **kwargs
     ):
         super(YOLOConv2D, self).__init__(**kwargs)
-
+        self.activation = activation
         self.filters = filters
-
+        self.input_dim = None
         if isinstance(kernel_size, int):
             self.kernel_size = (kernel_size, kernel_size)
         else:
             self.kernel_size = kernel_size
-
         if isinstance(strides, int):
             self.strides = (strides, strides)
         else:
             self.strides = strides
 
-        self.activation = activation
-
-        self.sequential = tf.keras.Sequential()
+        self.sequential = Sequential()
 
         if self.strides[0] == 2:
             self.sequential.add(layers.ZeroPadding2D(((1, 0), (1, 0))))
@@ -87,7 +67,7 @@ class YOLOConv2D(Layer):
                 kernel_size=self.kernel_size,
                 padding="same" if self.strides[0] == 1 else "valid",
                 strides=self.strides,
-                use_bias=False if self.activation is not None else True,
+                use_bias=not self.activation,
                 kernel_regularizer=tf.keras.regularizers.l2(0.0005),
                 kernel_initializer=tf.random_normal_initializer(stddev=0.01),
                 bias_initializer=tf.constant_initializer(0.0),

@@ -21,11 +21,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+from tensorflow.keras import layers, Model, Sequential
 
-import tensorflow as tf
-from tensorflow.keras import Model, layers
-from tensorflow.keras.layers import Layer
-from .common import Mish, YOLOConv2D
+from .common import YOLOConv2D
 
 
 class _ResBlock(Model):
@@ -46,7 +44,7 @@ class ResBlock(Model):
     def __init__(self, filters_1: int, filters_2: int, iteration: int):
         super(ResBlock, self).__init__()
         self.iteration = iteration
-        self.sequential = tf.keras.Sequential()
+        self.sequential = Sequential()
         for _ in range(self.iteration):
             self.sequential.add(
                 _ResBlock(filters_1=filters_1, filters_2=filters_2)
@@ -74,6 +72,8 @@ class CSPResNet(Model):
         )
         self.part1_conv2 = YOLOConv2D(filters=filters_2, kernel_size=1)
 
+        self.concat1_2 = layers.Concatenate(axis=-1)
+
         self.post_conv = YOLOConv2D(filters=filters_1, kernel_size=1)
 
     def call(self, x):
@@ -85,7 +85,7 @@ class CSPResNet(Model):
         part1 = self.part1_res_block(part1)
         part1 = self.part1_conv2(part1)
 
-        x = tf.concat([part1, part2], axis=-1)
+        x = self.concat1_2([part1, part2])
 
         x = self.post_conv(x)
         return x
@@ -98,23 +98,18 @@ class SPP(Model):
 
     def __init__(self):
         super(SPP, self).__init__()
-        self.pool1 = tf.keras.layers.MaxPooling2D(
-            (13, 13), strides=1, padding="same"
-        )
-        self.pool2 = tf.keras.layers.MaxPooling2D(
-            (9, 9), strides=1, padding="same"
-        )
-        self.pool3 = tf.keras.layers.MaxPooling2D(
-            (5, 5), strides=1, padding="same"
-        )
+        self.pool1 = layers.MaxPooling2D((13, 13), strides=1, padding="same")
+        self.pool2 = layers.MaxPooling2D((9, 9), strides=1, padding="same")
+        self.pool3 = layers.MaxPooling2D((5, 5), strides=1, padding="same")
+        self.concat = layers.Concatenate(axis=-1)
 
     def call(self, x):
-        return tf.concat([self.pool1(x), self.pool2(x), self.pool3(x), x], -1)
+        return self.concat([self.pool1(x), self.pool2(x), self.pool3(x), x])
 
 
 class CSPDarknet53(Model):
     def __init__(self):
-        super(CSPDarknet53, self).__init__()
+        super(CSPDarknet53, self).__init__(name="CSPDarknet53")
         self.conv0 = YOLOConv2D(filters=32, kernel_size=3)
 
         self.res_block1 = CSPResNet(filters_1=64, filters_2=64, iteration=1)
