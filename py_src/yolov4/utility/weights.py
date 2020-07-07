@@ -26,11 +26,10 @@ import numpy as np
 
 def load_yolov4(model, weights_file):
     with open(weights_file, "rb") as fd:
-        major, minor, revision, seen, _ = _np_fromfile(
-            fd, dtype=np.int32, count=5
-        )
+        # major, minor, revision, seen, _
+        _np_fromfile(fd, dtype=np.int32, count=5)
 
-        csp_darknet53 = model.get_layer("csp_darknet53")
+        csp_darknet53 = model.get_layer("CSPDarknet53")
 
         if not csp_darknet53_set_weights(csp_darknet53, fd):
             return False
@@ -53,8 +52,7 @@ def _np_fromfile(fd, dtype, count):
     if len(data) != count:
         if len(data) == 0:
             return None
-        else:
-            raise ValueError("Model and weights file do not match.")
+        raise ValueError("Model and weights file do not match.")
     return data
 
 
@@ -114,13 +112,14 @@ def res_block_set_weights(model, fd):
 
 
 def csp_res_net_set_weights(model, fd):
-    for i in range(6):
-        if i == 3:
-            if not res_block_set_weights(model.get_layer(index=3), fd):
-                return False
-        else:
-            if not yolo_conv2d_set_weights(model.get_layer(index=i), fd):
-                return False
+    for i in range(3):
+        if not yolo_conv2d_set_weights(model.get_layer(index=i), fd):
+            return False
+    if not res_block_set_weights(model.get_layer(index=3), fd):
+        return False
+    for i in (4, 6):
+        if not yolo_conv2d_set_weights(model.get_layer(index=i), fd):
+            return False
 
     return True
 
