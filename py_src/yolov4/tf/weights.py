@@ -24,27 +24,17 @@ SOFTWARE.
 import numpy as np
 
 
-def load_yolov4(model, weights_file):
+def load_weights(model, weights_file):
     with open(weights_file, "rb") as fd:
         # major, minor, revision, seen, _
         _np_fromfile(fd, dtype=np.int32, count=5)
 
-        csp_darknet53 = model.get_layer("CSPDarknet53")
-
-        if not csp_darknet53_set_weights(csp_darknet53, fd):
-            return False
-
-        for i in range(78, 110):
-            layer_name = "yolo_conv2d_%d" % i
-
-            yolo_conv2d = model.get_layer(layer_name)
-            if not yolo_conv2d_set_weights(yolo_conv2d, fd):
-                return False
+        ret = yolov4_set_weights(model, fd)
 
         if len(fd.read()) != 0:
             raise ValueError("Model and weights file do not match.")
 
-    return True
+    return ret
 
 
 def _np_fromfile(fd, dtype, count):
@@ -141,5 +131,30 @@ def csp_darknet53_set_weights(csp_darknet53, fd):
     for i in range(10, 10 + 3):
         if not yolo_conv2d_set_weights(csp_darknet53.get_layer(index=i), fd):
             return False
+
+    return True
+
+
+def panet_set_weights(panet, fd):
+    for i in range(78, 110):
+        layer_name = "yolo_conv2d_%d" % i
+
+        yolo_conv2d = panet.get_layer(layer_name)
+        if not yolo_conv2d_set_weights(yolo_conv2d, fd):
+            return False
+
+    return True
+
+
+def yolov4_set_weights(yolov4, fd):
+    csp_darknet53 = yolov4.get_layer("CSPDarknet53")
+
+    if not csp_darknet53_set_weights(csp_darknet53, fd):
+        return False
+
+    panet = yolov4.get_layer("PANet")
+
+    if not panet_set_weights(panet, fd):
+        return False
 
     return True
