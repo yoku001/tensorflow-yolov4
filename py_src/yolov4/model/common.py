@@ -31,7 +31,7 @@ from tensorflow.keras.layers import Layer
 class Mish(Layer):
     def call(self, x):
         # pylint: disable=no-self-use
-        return x * backend.tanh(backend.log(1 + backend.exp(x)))
+        return x * backend.tanh(backend.softplus(x))
 
 
 class YOLOConv2D(Layer):
