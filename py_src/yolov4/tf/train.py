@@ -177,9 +177,9 @@ def bbox_iou(bboxes1, bboxes2):
     inter_section = tf.maximum(right_down - left_up, 0.0)
     inter_area = inter_section[..., 0] * inter_section[..., 1]
 
-    union_area = bboxes1_area + bboxes2_area - inter_area + 1e-6
+    union_area = bboxes1_area + bboxes2_area - inter_area
 
-    iou = inter_area / union_area
+    iou = inter_area / (union_area + 1e-6)
 
     return iou
 
@@ -220,9 +220,9 @@ def bbox_giou(bboxes1, bboxes2):
     inter_section = tf.maximum(right_down - left_up, 0.0)
     inter_area = inter_section[..., 0] * inter_section[..., 1]
 
-    union_area = bboxes1_area + bboxes2_area - inter_area + 1e-6
+    union_area = bboxes1_area + bboxes2_area - inter_area
 
-    iou = inter_area / union_area
+    iou = inter_area / (union_area + 1e-6)
 
     enclose_left_up = tf.minimum(bboxes1_coor[..., :2], bboxes2_coor[..., :2])
     enclose_right_down = tf.maximum(
@@ -273,9 +273,9 @@ def bbox_ciou(bboxes1, bboxes2):
     inter_section = tf.maximum(right_down - left_up, 0.0)
     inter_area = inter_section[..., 0] * inter_section[..., 1]
 
-    union_area = bboxes1_area + bboxes2_area - inter_area + 1e-6
+    union_area = bboxes1_area + bboxes2_area - inter_area
 
-    iou = inter_area / union_area
+    iou = inter_area / (union_area + 1e-6)
 
     enclose_left_up = tf.minimum(bboxes1_coor[..., :2], bboxes2_coor[..., :2])
     enclose_right_down = tf.maximum(
