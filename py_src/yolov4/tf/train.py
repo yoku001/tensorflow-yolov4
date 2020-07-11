@@ -24,71 +24,122 @@ SOFTWARE.
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras import backend, losses
+from tensorflow.keras.losses import Loss
 
 
-def make_compiled_loss(
-    model,
-    iou_type: str = "ciou",
-    iou_threshold: float = 0.5,
-    classes_threshold: float = 0.25,
-    score_classes_threshold: float = 0.25,
-):
-    # pylint: disable=unused-argument
-    if iou_type == "giou":
-        xiou_func = bbox_giou
-    elif iou_type == "ciou":
-        xiou_func = bbox_ciou
+class YOLOv4Loss(Loss):
+    def __init__(self, batch_size, iou_type):
+        super(YOLOv4Loss, self).__init__(name="YOLOv4Loss")
+        if iou_type == "ciou":
+            self.bbox_xiou = bbox_ciou
 
-    def compiled_loss(y, y_pred):
-        """
-        @param y:      (s_truth, m_truth, l_truth)
-            Dim(batch, grid_y, grid_x, anchors, (x, y, w, h, score, classes))
-        @param y_pred: (s_pred, m_pred, l_pred)
-            Dim(batch, grid_y, grid_x, anchors, (x, y, w, h, score, classes))
-        """
-        xiou_loss = []
-        classes_loss = []
-        for i in range(3):
-            batch_size, grid_size, _, _, _ = y[i].shape
-            truth = tf.reshape(
-                y[i], shape=(batch_size, grid_size * grid_size * 3, -1)
-            )
-            pred = tf.reshape(
-                y_pred[i], shape=(batch_size, grid_size * grid_size * 3, -1)
-            )
-
-            truth_xywh = truth[..., 0:4]
-            truth_score = truth[..., 4:5]
-            truth_classes = truth[..., 5:]
-
-            pred_xywh = pred[..., 0:4]
-            pred_raw_score = pred[..., 4:5]
-            pred_raw_classes = pred[..., 5:]
-
-            pred_score = tf.keras.activations.sigmoid(pred_raw_score)
-            pred_classes = tf.keras.activations.sigmoid(pred_raw_classes)
-
-            # XIoU loss
-            xiou = tf.expand_dims(xiou_func(truth_xywh, pred_xywh), axis=-1)
-            _xiou_loss = truth_score * (1 - xiou)
-
-            # Class loss
-            _classes_loss = (
-                truth_score * truth_classes
-                + (1 - truth_score) * pred_score * pred_classes
-            ) * tf.nn.sigmoid_cross_entropy_with_logits(
-                labels=truth_classes, logits=pred_raw_classes
-            )
-
-            xiou_loss.append(tf.reduce_sum(_xiou_loss))
-            classes_loss.append(tf.reduce_sum(_classes_loss))
-
-        return (
-            tf.convert_to_tensor(xiou_loss, dtype=tf.float32),
-            tf.convert_to_tensor(classes_loss, dtype=tf.float32),
+        self.prob_cross_entropy = losses.BinaryCrossentropy(
+            reduction=losses.Reduction.NONE
         )
 
-    return compiled_loss
+        self.batch_size = batch_size
+        self.while_cond = lambda i, iou: tf.less(i, self.batch_size)
+
+    def call(self, y_true, y_pred):
+        """
+        @param y_true: Dim(batch, grid, grid, 3,
+                                (b_x, b_y, b_w, b_h, conf, prob_0, prob_1, ...))
+        @param y_pred: Dim(batch, grid, grid, 3,
+                                (b_x, b_y, b_w, b_h, conf, prob_0, prob_1, ...))
+        """
+        _, grid_size, _, _, box_size = y_pred.shape
+
+        y_true = tf.reshape(
+            y_true, shape=(-1, grid_size * grid_size * 3, box_size)
+        )
+        y_pred = tf.reshape(
+            y_pred, shape=(-1, grid_size * grid_size * 3, box_size)
+        )
+
+        truth_xywh = y_true[..., 0:4]
+        truth_conf = y_true[..., 4:5]
+        truth_prob = y_true[..., 5:]
+
+        pred_xywh = y_pred[..., 0:4]
+        pred_conf = y_pred[..., 4:5]
+        pred_prob = y_pred[..., 5:]
+
+        one_obj = truth_conf
+        num_obj = tf.reduce_sum(one_obj, axis=[1, 2])
+        one_noobj = 1.0 - one_obj
+        # Dim(batch, grid * grid * 3, 1)
+        one_obj_mask = one_obj > 0.9
+
+        zero = tf.zeros((1, grid_size * grid_size * 3, 1), dtype=tf.float32)
+
+        # IoU Loss
+        xiou = self.bbox_xiou(truth_xywh, pred_xywh)
+        xiou_scale = 2.0 - truth_xywh[..., 2:3] * truth_xywh[..., 3:4]
+        xiou_loss = one_obj * xiou_scale * (1.0 - xiou[..., tf.newaxis])
+
+        # Confidence Loss
+        i0 = tf.constant(0)
+
+        def body(i, max_iou):
+            object_mask = tf.reshape(one_obj_mask[i, ...], shape=(-1,))
+            truth_bbox = tf.boolean_mask(truth_xywh[i, ...], mask=object_mask)
+            # grid * grid * 3,      1, xywh
+            #               1, answer, xywh
+            #   => grid * grid * 3, answer
+            _max_iou0 = tf.cond(
+                tf.equal(num_obj[i], 0),
+                lambda: zero,
+                lambda: tf.reshape(
+                    tf.reduce_max(
+                        bbox_iou(
+                            pred_xywh[i, :, tf.newaxis, :],
+                            truth_bbox[tf.newaxis, ...],
+                        ),
+                        axis=-1,
+                    ),
+                    shape=(1, -1, 1),
+                ),
+            )
+            # 1, grid * grid * 3, 1
+            _max_iou1 = tf.cond(
+                tf.equal(i, 0),
+                lambda: _max_iou0,
+                lambda: tf.concat([max_iou, _max_iou0], axis=0),
+            )
+            return tf.add(i, 1), _max_iou1
+
+        _, max_iou = tf.while_loop(
+            self.while_cond,
+            body,
+            [i0, zero],
+            shape_invariants=[
+                i0.get_shape(),
+                tf.TensorShape([None, grid_size * grid_size * 3, 1]),
+            ],
+        )
+
+        conf_obj_loss = one_obj * (0.0 - backend.log(pred_conf + 1e-6))
+        conf_noobj_loss = (
+            one_noobj
+            * 0.5
+            * tf.cast(max_iou < 0.5, dtype=tf.float32)
+            * (0.0 - backend.log(1.0 - pred_conf + 1e-6))
+        )
+
+        # Probabilities Loss
+        prob_loss = (
+            one_obj
+            * self.prob_cross_entropy(pred_prob, truth_prob)[..., tf.newaxis]
+        )
+
+        sum_xiou_loss = tf.reduce_mean(tf.reduce_sum(xiou_loss, axis=(1, 2)))
+        sum_conf_loss = tf.reduce_mean(
+            tf.reduce_sum(conf_obj_loss + conf_noobj_loss, axis=(1, 2))
+        )
+        sum_prob_loss = tf.reduce_mean(tf.reduce_sum(prob_loss, axis=(1, 2)))
+
+        return sum_xiou_loss + sum_conf_loss + sum_prob_loss
 
 
 def bbox_iou(bboxes1, bboxes2):
@@ -126,9 +177,9 @@ def bbox_iou(bboxes1, bboxes2):
     inter_section = tf.maximum(right_down - left_up, 0.0)
     inter_area = inter_section[..., 0] * inter_section[..., 1]
 
-    union_area = bboxes1_area + bboxes2_area - inter_area
+    union_area = bboxes1_area + bboxes2_area - inter_area + 1e-6
 
-    iou = tf.math.divide_no_nan(inter_area, union_area)
+    iou = inter_area / union_area
 
     return iou
 
@@ -169,9 +220,9 @@ def bbox_giou(bboxes1, bboxes2):
     inter_section = tf.maximum(right_down - left_up, 0.0)
     inter_area = inter_section[..., 0] * inter_section[..., 1]
 
-    union_area = bboxes1_area + bboxes2_area - inter_area
+    union_area = bboxes1_area + bboxes2_area - inter_area + 1e-6
 
-    iou = tf.math.divide_no_nan(inter_area, union_area)
+    iou = inter_area / union_area
 
     enclose_left_up = tf.minimum(bboxes1_coor[..., :2], bboxes2_coor[..., :2])
     enclose_right_down = tf.maximum(
@@ -222,9 +273,9 @@ def bbox_ciou(bboxes1, bboxes2):
     inter_section = tf.maximum(right_down - left_up, 0.0)
     inter_area = inter_section[..., 0] * inter_section[..., 1]
 
-    union_area = bboxes1_area + bboxes2_area - inter_area
+    union_area = bboxes1_area + bboxes2_area - inter_area + 1e-6
 
-    iou = tf.math.divide_no_nan(inter_area, union_area)
+    iou = inter_area / union_area
 
     enclose_left_up = tf.minimum(bboxes1_coor[..., :2], bboxes2_coor[..., :2])
     enclose_right_down = tf.maximum(
