@@ -35,6 +35,7 @@ class Dataset:
     def __init__(
         self,
         anchors: np.ndarray = None,
+        batch_size: int = 2,
         dataset_path: str = None,
         dataset_type: str = "converted_coco",
         data_augmentation: bool = True,
@@ -44,6 +45,7 @@ class Dataset:
         xyscales: np.ndarray = None,
     ):
         self.anchors_ratio = anchors / input_size
+        self.batch_size = batch_size
         self.dataset_path = dataset_path
         self.dataset_type = dataset_type
         self.data_augmentation = data_augmentation
@@ -246,14 +248,31 @@ class Dataset:
         @return image, ground_truth
             ground_truth == (s_truth, m_truth, l_truth)
         """
-        x, y = self.preprocess_dataset(self.dataset[self.count])
+        if self.batch_size > 1:
+            batch_x = []
+            batch_y_s = []
+            batch_y_l = []
+            batch_y_m = []
+            for _ in range(self.batch_size):
+                x, y = self.preprocess_dataset(self.dataset[self.count])
+                batch_x.append(x)
+                batch_y_s.append(y[0])
+                batch_y_m.append(y[1])
+                batch_y_l.append(y[2])
+            batch_x = np.concatenate(batch_x, axis=0)
+            batch_y_s = np.concatenate(batch_y_s, axis=0)
+            batch_y_m = np.concatenate(batch_y_m, axis=0)
+            batch_y_l = np.concatenate(batch_y_l, axis=0)
+            batch_y = (batch_y_s, batch_y_m, batch_y_l)
+        else:
+            batch_x, batch_y = self.preprocess_dataset(self.dataset[self.count])
 
         self.count += 1
         if self.count == len(self.dataset):
             np.random.shuffle(self.dataset)
             self.count = 0
 
-        return x, y
+        return batch_x, batch_y
 
     def __len__(self):
         return len(self.dataset)
