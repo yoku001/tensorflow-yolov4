@@ -1,3 +1,28 @@
+tensorflow-yolov4 (0.12.0) unstable; urgency=medium
+
+  * utility: train: refactor bbox_*iou and remove duplicate funcs
+  * yolov4: rename parameters
+  * yolov4: remove utils
+  * tf: add FileNotFoundError in YOLOv4.inference()
+  * utility: predict: add dimension for batch size
+  * pylint: update .pylintrc
+  * tf: add YOLOv4.save_as_tflite()
+  * model: clean up
+  * utility: weights: move to tf.weights
+  * utility: train: move to tf.train
+  * model: neck: implement PANet
+  * mdel: head: implement YOLOv3Head
+  * model: yolov4: Apply neck and head class
+  * yolov4: reflect model changes
+  * tf: dataset: add batch_size
+  * tf: train: implement YOLOv4Loss
+  * utility: media: modify rectangle thickness
+  * model: common: use softplus instead of ln(1+exp(x))
+  * tf: train: use epsilon instead of tf.math.divide_no_nan
+  * tf: refactor YOLOv4.fit() and .compile()
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Sun, 12 Jul 2020 03:50:50 +0900
+
 tensorflow-yolov4 (0.11.0) unstable; urgency=medium
 
   * tf: remove utils.draw_bbox in predict()
