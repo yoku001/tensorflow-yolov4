@@ -125,7 +125,7 @@ def draw_bbox(image: np.ndarray, bboxes: np.ndarray, classes: dict):
         font_size = min(max_size / 1500, 0.7)
         font_thickness = 1 if max_size < 1000 else 2
 
-        cv2.rectangle(image, c_min, c_max, bbox_color, 3)
+        cv2.rectangle(image, c_min, c_max, bbox_color, 2)
 
         bbox_text = "{}: {:.1%}".format(classes[class_id], bbox[5])
         t_size = cv2.getTextSize(bbox_text, 0, font_size, font_thickness)[0]
