@@ -67,6 +67,11 @@ yolo.load_weights("/home/hhk7734/Desktop/yolov4.weights", weights_type="yolo")
 yolo.inference(
     media_path="/home/hhk7734/tensorflow-yolov4/data/kite.jpg",
 )
+
+yolo.inference(
+    media_path="/home/hhk7734/tensorflow-yolov4/data/road.mp4",
+    is_image=False
+)
 ```
 
 ### tensorflow lite
@@ -78,21 +83,25 @@ yolo.inference(
 **Not successful yet.**
 
 ```python
+
 from yolov4.tf import YOLOv4
 
 yolo = YOLOv4()
 
 yolo.classes = "/home/hhk7734/tensorflow-yolov4/data/classes/coco.names"
 
-yolo.input_size = 416
+yolo.input_size = 608
+yolo.batch_size = 32
+yolo.subdivision = 16
 yolo.make_model()
 yolo.load_weights("/home/hhk7734/Desktop/yolov4.conv.137", weights_type="yolo")
 
-data_set = yolo.load_dataset("/home/hhk7734/tensorflow-yolov4/data/dataset/val2017.txt")
+data_set = yolo.load_dataset(
+    "/home/hhk7734/tensorflow-yolov4/data/dataset/val2017.txt"
+)
 
-yolo.compile(learning_rate=4e-7)
-yolo.fit(data_set, epochs=4000, batch_size=4)
-
+yolo.compile(iou_type="ciou", learning_rate=1e-4)
+yolo.fit(data_set, epochs=2000)
 yolo.model.save_weights("checkpoints")
 ```
 
@@ -112,8 +121,7 @@ data_set = yolo.load_dataset(
     dataset_type="yolo",
 )
 
-yolo.compile(learning_rate=4e-7)
-yolo.fit(data_set, epochs=4000, batch_size=4)
-
+yolo.compile(iou_type="ciou", learning_rate=1e-4)
+yolo.fit(data_set, epochs=2000)
 yolo.model.save_weights("checkpoints")
 ```
