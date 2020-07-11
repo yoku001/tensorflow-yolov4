@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+from datetime import datetime
 from os import path
 import time
 from typing import Union
@@ -28,9 +29,11 @@ from typing import Union
 import cv2
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras import backend, layers, models
 
-from ..utility import dataset, media, predict, train, weights
+from . import dataset, train, weights
 from ..model import yolov4
+from ..utility import media, predict
 
 
 class YOLOv4:
@@ -39,25 +42,12 @@ class YOLOv4:
         Default configuration
         """
         self.anchors = [
-            12,
-            16,
-            19,
-            36,
-            40,
-            28,
-            36,
-            75,
-            76,
-            55,
-            72,
-            146,
-            142,
-            110,
-            192,
-            243,
-            459,
-            401,
+            [[12, 16], [19, 36], [40, 28]],
+            [[36, 75], [76, 55], [72, 146]],
+            [[142, 110], [192, 243], [459, 401]],
         ]
+        self.batch_size = 32
+        self.subdivision = 16
         self._classes = None
         self._has_weights = False
         self.input_size = 608
@@ -158,15 +148,15 @@ class YOLOv4:
     def make_model(self):
         # pylint: disable=missing-function-docstring
         self._has_weights = False
-        tf.keras.backend.clear_session()
+        backend.clear_session()
+
+        inputs = layers.Input([self.input_size, self.input_size, 3])
         self.model = yolov4.YOLOv4(
             anchors=self.anchors,
-            input_size=self.input_size,
             num_classes=len(self.classes),
             xyscales=self.xyscales,
         )
-        # [batch, height, width, channel]
-        self.model(tf.keras.layers.Input([self.input_size, self.input_size, 3]))
+        self.model(inputs)
 
     def load_weights(self, weights_path: str, weights_type: str = "tf"):
         """
@@ -175,7 +165,7 @@ class YOLOv4:
             yolo.load_weights("checkpoints")
         """
         if weights_type == "yolo":
-            weights.load_yolov4(self.model, weights_path)
+            weights.load_weights(self.model, weights_path)
         elif weights_type == "tf":
             self.model.load_weights(weights_path).expect_partial()
 
@@ -267,63 +257,36 @@ class YOLOv4:
     ):
         return dataset.Dataset(
             anchors=self.anchors,
+            batch_size=self.batch_size // self.subdivision,
             dataset_path=dataset_path,
             dataset_type=dataset_type,
-            data_augmentation=True if training else False,
+            data_augmentation=training,
             input_size=self.input_size,
             num_classes=len(self.classes),
             strides=self.strides,
             xyscales=self.xyscales,
         )
 
-    def compile(self, iou_type: str = "giou", learning_rate: float = 1e-5):
-        self.model.compile(iou_type=iou_type, learning_rate=learning_rate)
+    def compile(self, iou_type: str = "ciou", learning_rate: float = 1e-4):
+        self.model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+            loss=train.YOLOv4Loss(
+                batch_size=self.batch_size // self.subdivision,
+                iou_type=iou_type,
+            ),
+        )
 
-    def fit(
-        self, data_set, epochs, batch_size: int = 32, subdivisions: int = 16
-    ):
-        """
-        Train
-        """
-        batch = batch_size // subdivisions
-        total_bboxes = 0
-        for epoch in range(epochs):
-            start_time = time.time()
-            avg_loss = 0
-            for _ in range(subdivisions):
-                _batch_data = []
-                for _ in range(batch):
-                    _batch_data.append(next(data_set))
-
-                batch_data = (
-                    tf.concat([x[0] for x in _batch_data], axis=0),
-                    (
-                        tf.concat([x[1][0] for x in _batch_data], axis=0),
-                        tf.concat([x[1][1] for x in _batch_data], axis=0),
-                        tf.concat([x[1][2] for x in _batch_data], axis=0),
-                    ),
-                )
-
-                train_data = self.model.train_step(batch_data)
-                for i in range(3):
-                    tf.print(
-                        "count: {:2d} class_loss = {:7.2f}, xiou_loss = {:4.2f}, total_loss = {:7.2f}".format(
-                            int(train_data[0][i]),
-                            train_data[1][i],
-                            train_data[2][i],
-                            train_data[3][i],
-                        )
-                    )
-                    total_bboxes += int(train_data[0][i])
-                avg_loss += train_data[4]
-                tf.print("total_bbox = {}".format(total_bboxes))
-
-            avg_loss /= subdivisions
-
-            tf.print(
-                "\nepoch: {}, {:7.2f} avg loss, {:5.2f} sec\n".format(
-                    epoch + 1, avg_loss, time.time() - start_time
-                )
+    def fit(self, data_set, epochs, log_dir_path=None):
+        callbacks = []
+        if log_dir_path:
+            tensorboard_callback = tf.keras.callbacks.TensorBoard(
+                log_dir=log_dir_path, histogram_freq=1
             )
-            if epoch % 100 == 99:
-                self.model.save_weights("checkpoints_{}".format(epoch + 1))
+            callbacks.append(tensorboard_callback)
+        self.model.fit(
+            data_set,
+            epochs=epochs,
+            batch_size=data_set.batch_size,
+            steps_per_epoch=self.subdivision,
+            callbacks=callbacks,
+        )
