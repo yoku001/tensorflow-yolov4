@@ -232,7 +232,7 @@ def bbox_giou(bboxes1, bboxes2):
     enclose_section = enclose_right_down - enclose_left_up
     enclose_area = enclose_section[..., 0] * enclose_section[..., 1]
 
-    giou = iou - tf.math.divide_no_nan(enclose_area - union_area, enclose_area)
+    giou = iou - (enclose_area - union_area) / (enclose_area + 1e-6)
 
     return giou
 
@@ -290,22 +290,18 @@ def bbox_ciou(bboxes1, bboxes2):
 
     rho_2 = center_diagonal[..., 0] ** 2 + center_diagonal[..., 1] ** 2
 
-    diou = iou - tf.math.divide_no_nan(rho_2, c_2)
+    diou = iou - rho_2 / (c_2 + 1e-6)
 
     v = (
         (
-            tf.math.atan(
-                tf.math.divide_no_nan(bboxes1[..., 2], bboxes1[..., 3])
-            )
-            - tf.math.atan(
-                tf.math.divide_no_nan(bboxes2[..., 2], bboxes2[..., 3])
-            )
+            tf.math.atan(bboxes1[..., 2] / (bboxes1[..., 3] + 1e-6))
+            - tf.math.atan(bboxes2[..., 2] / (bboxes2[..., 3] + 1e-6))
         )
         * 2
         / np.pi
     ) ** 2
 
-    alpha = tf.math.divide_no_nan(v, 1 - iou + v)
+    alpha = v / (1 - iou + v + 1e-6)
 
     ciou = diou - alpha * v
 
