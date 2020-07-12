@@ -184,27 +184,83 @@ class YOLOv4:
         with tf.io.gfile.GFile(tflite_path, "wb") as fd:
             fd.write(tflite_model)
 
+    def resize_image(self, image, ground_truth=None):
+        """
+        @param image:        Dim(height, width, channels)
+        @param ground_truth: [[center_x, center_y, w, h, class_id], ...]
+
+        @return resized_image or (resized_image, resized_ground_truth)
+
+        Usage:
+            image = yolo.resize_image(image)
+            image, ground_truth = yolo.resize_image(image, ground_truth)
+        """
+        return media.resize_image(
+            image, target_size=self.input_size, ground_truth=ground_truth
+        )
+
+    def candidates_to_pred_bboxes(self, candidates):
+        """
+        @param candidates: Dim(-1, (x, y, w, h, conf, prob_0, prob_1, ...))
+
+        @return Dim(-1, (x, y, w, h, class_id, probability))
+        """
+        return predict.candidates_to_pred_bboxes(candidates, self.input_size)
+
+    def fit_pred_bboxes_to_original(self, pred_bboxes, original_shape):
+        """
+        @param pred_bboxes:    Dim(-1, (x, y, w, h, class_id, probability))
+        @param original_shape: (height, width, channels)
+        """
+        # pylint: disable=no-self-use
+        return predict.fit_pred_bboxes_to_original(pred_bboxes, original_shape)
+
+    def draw_bboxes(self, image, bboxes):
+        """
+        @parma image:  Dim(height, width, channel)
+        @param bboxes: (candidates, 4) or (candidates, 5)
+                [[center_x, center_y, w, h, class_id], ...]
+                [[center_x, center_y, w, h, class_id, propability], ...]
+
+        @return drawn_image
+
+        Usage:
+            image = yolo.draw_bboxes(image, bboxes)
+        """
+        return media.draw_bboxes(image, bboxes, self.classes)
+
+    #############
+    # Inference #
+    #############
+
     def predict(self, frame: np.ndarray):
-        image_data = media.resize(frame, self.input_size)
+        """
+        Predict one frame
+
+        @param frame: Dim(height, width, channels)
+
+        @return pred_bboxes == Dim(-1, (x, y, w, h, class_id, probability))
+        """
+        # image_data == Dim(1, input_szie, input_size, channels)
+        image_data = self.resize_image(frame)
         image_data = image_data / 255
         image_data = image_data[np.newaxis, ...].astype(np.float32)
 
+        # s_pred, m_pred, l_pred
+        # x_pred == Dim(1, output_size, output_size, anchors, (bbox))
         candidates = self.model.predict(image_data)
         _candidates = []
         for candidate in candidates:
-            batch_size = candidate.shape[0]
             grid_size = candidate.shape[1]
             _candidates.append(
-                tf.reshape(
-                    candidate, shape=(batch_size, grid_size * grid_size * 3, -1)
-                )
+                tf.reshape(candidate, shape=(1, grid_size * grid_size * 3, -1))
             )
         candidates = np.concatenate(_candidates, axis=1)
-        candidates = predict.reduce_bbox_candidates(candidates, self.input_size)
-        candidates = predict.fit_predicted_bboxes_to_original(
-            candidates, frame.shape
-        )
-        return candidates
+
+        # Select 0
+        pred_bboxes = self.candidates_to_pred_bboxes(candidates[0])
+        pred_bboxes = self.fit_pred_bboxes_to_original(pred_bboxes, frame.shape)
+        return pred_bboxes
 
     def inference(self, media_path, is_image=True, cv_waitKey_delay=10):
         if not path.exists(media_path):
@@ -213,15 +269,13 @@ class YOLOv4:
             frame = cv2.imread(media_path)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            prev_time = time.time()
+            start_time = time.time()
             bboxes = self.predict(frame)
-            curr_time = time.time()
-            exec_time = curr_time - prev_time
-            info = "time: %.2f ms" % (1000 * exec_time)
-            print(info)
+            exec_time = time.time() - start_time
+            print("time: {:.2f} ms".format(exec_time * 1000))
 
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            image = media.draw_bbox(frame, bboxes[0], self.classes)
+            image = self.draw_bboxes(frame, bboxes)
             cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
             cv2.imshow("result", image)
         else:
@@ -233,15 +287,15 @@ class YOLOv4:
                 else:
                     break
 
-                prev_time = time.time()
+                start_time = time.time()
                 bboxes = self.predict(frame)
                 curr_time = time.time()
-                exec_time = curr_time - prev_time
+                exec_time = curr_time - start_time
                 info = "time: %.2f ms" % (1000 * exec_time)
                 print(info)
 
                 frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                image = media.draw_bbox(frame, bboxes[0], self.classes)
+                image = self.draw_bboxes(frame, bboxes)
                 cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
                 cv2.imshow("result", image)
                 if cv2.waitKey(cv_waitKey_delay) & 0xFF == ord("q"):
@@ -251,6 +305,10 @@ class YOLOv4:
         while cv2.waitKey(10) & 0xFF != ord("q"):
             pass
         cv2.destroyWindow("result")
+
+    ############
+    # Training #
+    ############
 
     def load_dataset(
         self, dataset_path, dataset_type="converted_coco", training=True
