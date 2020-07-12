@@ -89,7 +89,7 @@ def resize(
     return padded_image, ground_truth
 
 
-def draw_bbox(image: np.ndarray, bboxes: np.ndarray, classes: dict):
+def draw_bboxes(image: np.ndarray, bboxes: np.ndarray, classes: dict):
     """
     @parma image:  Dim(height, width, channel)
     @param bboxes: (candidates, 4) or (candidates, 5)
@@ -100,7 +100,7 @@ def draw_bbox(image: np.ndarray, bboxes: np.ndarray, classes: dict):
     @return drawn_image
 
     Usage:
-        image = media.draw_bbox(image, bboxes, classes)
+        image = media.draw_bboxes(image, bboxes, classes)
     """
     image = np.copy(image)
     height, width, _ = image.shape
