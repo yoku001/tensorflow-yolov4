@@ -21,8 +21,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
-import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend, losses
 from tensorflow.keras.losses import Loss
@@ -298,7 +296,7 @@ def bbox_ciou(bboxes1, bboxes2):
             - tf.math.atan(bboxes2[..., 2] / (bboxes2[..., 3] + 1e-6))
         )
         * 2
-        / np.pi
+        / 3.1415926536
     ) ** 2
 
     alpha = v / (1 - iou + v + 1e-6)
