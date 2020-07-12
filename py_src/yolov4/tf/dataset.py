@@ -224,7 +224,7 @@ class Dataset:
                 [width, height, width, height, 1]
             )
 
-        resized_image, resized_bboxes = media.resize(
+        resized_image, resized_bboxes = media.resize_image(
             image, self.input_size, dataset[1]
         )
 
