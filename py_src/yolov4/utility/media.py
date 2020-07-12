@@ -28,7 +28,7 @@ import cv2
 import numpy as np
 
 
-def resize(
+def resize_image(
     image: np.ndarray, target_size: int, ground_truth: np.ndarray = None
 ):
     """
@@ -39,8 +39,9 @@ def resize(
     @return resized_image or (resized_image, resized_ground_truth)
 
     Usage:
-        image = media.resize(image, yolo.input_size)
-        image, ground_truth = media.resize(image, yolo.input_size, ground_truth)
+        image = media.resize_image(image, yolo.input_size)
+        image, ground_truth = media.resize_image(image, yolo.input_size,
+                                                                ground_truth)
     """
     height, width, _ = image.shape
 
