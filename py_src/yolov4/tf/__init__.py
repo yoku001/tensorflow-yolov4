@@ -276,17 +276,25 @@ class YOLOv4:
             ),
         )
 
-    def fit(self, data_set, epochs, log_dir_path=None):
-        callbacks = []
-        if log_dir_path:
-            tensorboard_callback = tf.keras.callbacks.TensorBoard(
-                log_dir=log_dir_path, histogram_freq=1
-            )
-            callbacks.append(tensorboard_callback)
+    def fit(self, data_set, epochs, verbose=1, callbacks=None):
+        # validation_split=0.,
+        # validation_data=None,
+        # shuffle=True,
+        # class_weight=None,
+        # sample_weight=None,
+        # initial_epoch=0,
+        # steps_per_epoch=None,
+        # validation_steps=None,
+        # validation_batch_size=None,
+        # validation_freq=1,
+        # max_queue_size=10,
+        # workers=1,
+        # use_multiprocessing=False
         self.model.fit(
             data_set,
             epochs=epochs,
+            verbose=verbose,
+            callbacks=callbacks,
             batch_size=data_set.batch_size,
             steps_per_epoch=self.subdivision,
-            callbacks=callbacks,
         )
