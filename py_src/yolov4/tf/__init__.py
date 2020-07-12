@@ -29,7 +29,7 @@ from typing import Union
 import cv2
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import backend, layers, models
+from tensorflow.keras import backend, layers, models, optimizers
 
 from . import dataset, train, weights
 from ..model import yolov4
@@ -267,12 +267,16 @@ class YOLOv4:
             xyscales=self.xyscales,
         )
 
-    def compile(self, iou_type: str = "ciou", learning_rate: float = 1e-4):
+    def compile(
+        self,
+        optimizer=optimizers.Adam(learning_rate=1e-4),
+        loss_iou_type: str = "ciou",
+    ):
         self.model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+            optimizer=optimizer,
             loss=train.YOLOv4Loss(
                 batch_size=self.batch_size // self.subdivision,
-                iou_type=iou_type,
+                iou_type=loss_iou_type,
             ),
         )
 
@@ -295,6 +299,6 @@ class YOLOv4:
             epochs=epochs,
             verbose=verbose,
             callbacks=callbacks,
-            batch_size=data_set.batch_size,
+            batch_size=self.batch_size // self.subdivision,
             steps_per_epoch=self.subdivision,
         )
