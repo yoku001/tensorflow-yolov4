@@ -1,3 +1,16 @@
+tensorflow-yolov4 (0.13.0) unstable; urgency=medium
+
+  * tf: remove tensorboard callback
+  * tf: modify compile() and fit() to be similar to model
+  * yolov4: rename 'data' to 'test'
+  * utility: media: update docs and variable name
+  * utility: predict: remove batch_size
+  * utility: media: rename funcs
+  * tf: add utility funcs to YOLOv4 member funcs
+  * test: add test script
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Mon, 13 Jul 2020 13:36:32 +0900
+
 tensorflow-yolov4 (0.12.0) unstable; urgency=medium
 
   * utility: train: refactor bbox_*iou and remove duplicate funcs
