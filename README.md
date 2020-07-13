@@ -73,7 +73,30 @@ yolo.inference(media_path="road.mp4", is_image=False)
 
 ### tensorflow lite
 
-Error: Aborted (core dumped)
+```python
+from yolov4.tf import YOLOv4
+
+yolo = YOLOv4()
+
+yolo.classes = "coco.names"
+
+yolo.make_model()
+yolo.load_weights("yolov4.weights", weights_type="yolo")
+
+yolo.save_as_tflite("yolov4.tflite")
+```
+
+```python
+from yolov4.tflite import YOLOv4
+
+yolo = YOLOv4()
+
+yolo.classes = "coco.names"
+
+yolo.load_tflite("yolov4.tflite")
+
+yolo.inference("kite.jpg")
+```
 
 ## Training
 
