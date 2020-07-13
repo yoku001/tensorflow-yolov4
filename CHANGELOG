@@ -1,3 +1,16 @@
+tensorflow-yolov4 (0.14.0) unstable; urgency=medium
+
+  * github: add python publish action
+  * model: neck: use bilinear in UpSampling2D
+  * test: update script
+  * tflite: refactor YOLOv4
+  * utility: predict: fix according to pylint warning
+  * pylint: update .pylintrc
+  * model: head: use tf.constant to avoid broadcasting
+  * github: add python lint action
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Tue, 14 Jul 2020 02:14:12 +0900
+
 tensorflow-yolov4 (0.13.0) unstable; urgency=medium
 
   * tf: remove tensorboard callback
