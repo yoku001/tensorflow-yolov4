@@ -171,15 +171,43 @@ class YOLOv4:
 
         self._has_weights = True
 
-    def save_as_tflite(self, tflite_path):
+    def save_as_tflite(self, tflite_path, quantization=None, data_set=None):
         """
         Save model and weights as tflite
 
         Usage:
             yolo.save_as_tflite("yolov4.tflite")
+            yolo.save_as_tflite("yolov4-float16.tflite", "float16")
+            yolo.save_as_tflite("yolov4-int.tflite", "int", data_set)
         """
         converter = tf.lite.TFLiteConverter.from_keras_model(self.model)
-        converter.allow_custom_ops = True
+
+        def representative_dataset_gen():
+            for _ in range(20):
+                # pylint: disable=stop-iteration-return
+                # TODO: # of iteration
+                images, _ = next(data_set)
+                yield [tf.cast(images[0:1, ...], tf.float32)]
+
+        if quantization:
+            converter.optimizations = [tf.lite.Optimize.DEFAULT]
+
+        if quantization == "float16":
+            converter.target_spec.supported_types = [tf.float16]
+        elif quantization == "int":
+            converter.representative_dataset = representative_dataset_gen
+        elif quantization == "full_int8":
+            converter.representative_dataset = representative_dataset_gen
+            converter.target_spec.supported_ops = [
+                tf.lite.OpsSet.TFLITE_BUILTINS_INT8
+            ]
+            converter.inference_input_type = tf.int8
+            converter.inference_output_type = tf.int8
+        elif quantization:
+            raise ValueError(
+                "YOLOv4: {} is not a valid option".format(quantization)
+            )
+
         tflite_model = converter.convert()
         with tf.io.gfile.GFile(tflite_path, "wb") as fd:
             fd.write(tflite_model)
