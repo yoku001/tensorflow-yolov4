@@ -30,7 +30,7 @@ class PANet(Model):
     def __init__(self, num_classes):
         super(PANet, self).__init__(name="PANet")
         self.conv78 = YOLOConv2D(filters=256, kernel_size=1, activation="leaky")
-        self.upSampling78 = layers.UpSampling2D()
+        self.upSampling78 = layers.UpSampling2D(interpolation="bilinear")
         self.conv79 = YOLOConv2D(filters=256, kernel_size=1, activation="leaky")
         self.concat78_79 = layers.Concatenate(axis=-1)
 
@@ -41,7 +41,7 @@ class PANet(Model):
         self.conv84 = YOLOConv2D(filters=256, kernel_size=1, activation="leaky")
 
         self.conv85 = YOLOConv2D(filters=128, kernel_size=1, activation="leaky")
-        self.upSampling85 = layers.UpSampling2D()
+        self.upSampling85 = layers.UpSampling2D(interpolation="bilinear")
         self.conv86 = YOLOConv2D(filters=128, kernel_size=1, activation="leaky")
         self.concat85_86 = layers.Concatenate(axis=-1)
 
