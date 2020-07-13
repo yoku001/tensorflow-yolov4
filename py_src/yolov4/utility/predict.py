@@ -74,9 +74,9 @@ def DIoU_NMS(candidates, threshold):
                 if other_bboxes.shape[0] == 1:
                     bboxes.append(other_bboxes)
                     break
-                else:
-                    class_bboxes = other_bboxes
-                    continue
+
+                class_bboxes = other_bboxes
+                continue
 
             half = half[mask]
             enclose_left = enclose_left[mask]
@@ -119,22 +119,24 @@ def DIoU_NMS(candidates, threshold):
                     [other_bboxes, other2_bboxes], axis=0
                 )
                 continue
-            elif other_bboxes.shape[0] != 0:
+
+            if other_bboxes.shape[0] != 0:
                 if other_bboxes.shape[0] == 1:
                     bboxes.append(other_bboxes)
                     break
-                else:
-                    class_bboxes = other_bboxes
-                    continue
-            elif other2_bboxes.shape[0] != 0:
+
+                class_bboxes = other_bboxes
+                continue
+
+            if other2_bboxes.shape[0] != 0:
                 if other2_bboxes.shape[0] == 1:
                     bboxes.append(other2_bboxes)
                     break
-                else:
-                    class_bboxes = other2_bboxes
-                    continue
-            else:
-                break
+
+                class_bboxes = other2_bboxes
+                continue
+
+            break
 
     if len(bboxes) == 0:
         return np.zeros(shape=(1, 6))
