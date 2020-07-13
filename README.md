@@ -36,12 +36,12 @@ Ref: [https://www.tensorflow.org/lite/guide/python](https://www.tensorflow.org/l
 
 ## Objective
 
-1. [ ] Train and predict using TensorFlow 2 only
-1. [ ] Run yolov4 on Coral board(TPU).
+- [x] Train and predict using TensorFlow 2 only
+- [ ] Run yolov4 on Coral board(TPU).
 
 ## Performance
 
-<p align="center"><img src="data/performance.png" width="640"\></p>
+<p align="center"><img src="test/performance.png" width="640"\></p>
 
 ## Help
 
@@ -59,20 +59,17 @@ from yolov4.tf import YOLOv4
 
 yolo = YOLOv4()
 
-yolo.classes = "/home/hhk7734/tensorflow-yolov4/data/classes/coco.names"
+yolo.classes = "coco.names"
 
 yolo.make_model()
-yolo.load_weights("/home/hhk7734/Desktop/yolov4.weights", weights_type="yolo")
+yolo.load_weights("yolov4.weights", weights_type="yolo")
 
-yolo.inference(
-    media_path="/home/hhk7734/tensorflow-yolov4/data/kite.jpg",
-)
+yolo.inference(media_path="kite.jpg")
 
-yolo.inference(
-    media_path="/home/hhk7734/tensorflow-yolov4/data/road.mp4",
-    is_image=False
-)
+yolo.inference(media_path="road.mp4", is_image=False)
 ```
+
+[Object detection test jupyter notebook](./test/object_detection_in_image.ipynb)
 
 ### tensorflow lite
 
@@ -80,48 +77,29 @@ yolo.inference(
 
 ## Training
 
-**Not successful yet.**
-
 ```python
-
+import tensorflow.keras import optimizers
 from yolov4.tf import YOLOv4
 
 yolo = YOLOv4()
 
-yolo.classes = "/home/hhk7734/tensorflow-yolov4/data/classes/coco.names"
-
+yolo.classes = "coco.names"
 yolo.input_size = 608
 yolo.batch_size = 32
 yolo.subdivision = 16
+
 yolo.make_model()
-yolo.load_weights("/home/hhk7734/Desktop/yolov4.conv.137", weights_type="yolo")
+yolo.load_weights("yolov4.conv.137", weights_type="yolo")
 
-data_set = yolo.load_dataset(
-    "/home/hhk7734/tensorflow-yolov4/data/dataset/val2017.txt"
-)
+data_set = yolo.load_dataset("val2017.txt")
+# data_set = yolo.load_dataset(
+#     "/home/hhk7734/darknet/data/train.txt",
+#     dataset_type="yolo",
+# )
 
-yolo.compile(iou_type="ciou", learning_rate=1e-4)
-yolo.fit(data_set, epochs=2000)
-yolo.model.save_weights("checkpoints")
-```
+optimizer = optimizers.Adam(learning_rate=1e-4)
+yolo.compile(optimizer=optimizer, loss_iou_type="ciou")
 
-```python
-from yolov4.tf import YOLOv4
-
-yolo = YOLOv4()
-
-yolo.classes = "/home/hhk7734/tensorflow-yolov4/data/classes/coco.names"
-
-yolo.input_size = 416
-yolo.make_model()
-yolo.load_weights("/home/hhk7734/Desktop/yolov4.conv.137", weights_type="yolo")
-
-data_set = yolo.load_dataset(
-    "/home/hhk7734/darknet/data/train.txt",
-    dataset_type="yolo",
-)
-
-yolo.compile(iou_type="ciou", learning_rate=1e-4)
-yolo.fit(data_set, epochs=2000)
+yolo.fit(data_set, epochs=1500)
 yolo.model.save_weights("checkpoints")
 ```
