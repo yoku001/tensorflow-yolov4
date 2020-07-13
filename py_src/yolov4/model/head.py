@@ -28,6 +28,7 @@ from tensorflow.keras import activations, backend, layers, Model
 class YOLOv3Head(Model):
     def __init__(self, anchors, num_classes, xysclaes):
         super(YOLOv3Head, self).__init__(name="YOLOv3Head")
+        self.a_half = None
         self.anchors = anchors
         self.grid_coord = []
         self.grid_size = None
@@ -47,6 +48,13 @@ class YOLOv3Head(Model):
         self.reshape0.target_shape = (grid[0], grid[0], 3, 5 + self.num_classes)
         self.reshape1.target_shape = (grid[1], grid[1], 3, 5 + self.num_classes)
         self.reshape2.target_shape = (grid[2], grid[2], 3, 5 + self.num_classes)
+
+        self.a_half = [
+            tf.constant(
+                0.5, dtype=tf.float32, shape=(1, grid[i], grid[i], 3, 2),
+            )
+            for i in range(3)
+        ]
 
         for i in range(3):
             xy_grid = tf.meshgrid(tf.range(grid[i]), tf.range(grid[i]))
@@ -71,7 +79,9 @@ class YOLOv3Head(Model):
             txty, twth, raw_conf, raw_prob = tf.split(
                 raw_pred, (2, 2, 1, self.num_classes), axis=-1
             )
-            txty = (activations.sigmoid(txty) - 0.5) * self.scales[i] + 0.5
+            txty = (activations.sigmoid(txty) - self.a_half[i]) * self.scales[
+                i
+            ] + self.a_half[i]
             bxby = (txty + self.grid_coord[i]) / self.grid_size[i]
 
             bwbh = (self.anchors[i] / self.image_size) * backend.exp(twth)
