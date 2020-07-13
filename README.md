@@ -73,7 +73,7 @@ yolo.inference(media_path="road.mp4", is_image=False)
 
 ### tensorflow lite
 
-`tf.keras.layers.UpSampling2D()` seems to be in TensorFlow >= 2.3.0
+Error: Aborted (core dumped)
 
 ## Training
 
@@ -103,3 +103,5 @@ yolo.compile(optimizer=optimizer, loss_iou_type="ciou")
 yolo.fit(data_set, epochs=1500)
 yolo.model.save_weights("checkpoints")
 ```
+
+[Custom training on Colab jupyter notebook](./test/custom_training_on_colab.ipynb)
