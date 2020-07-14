@@ -35,12 +35,21 @@ class YOLOv4(Model):
     Bounding Box(BBox)
     """
 
-    def __init__(self, anchors, num_classes: int, xyscales):
+    def __init__(
+        self,
+        anchors,
+        num_classes: int,
+        xyscales,
+        activation0: str = "mish",
+        activation1: str = "leaky",
+    ):
         super(YOLOv4, self).__init__(name="YOLOv4")
         self.num_classes = num_classes
 
-        self.csp_darknet53 = CSPDarknet53()
-        self.panet = PANet(num_classes=num_classes)
+        self.csp_darknet53 = CSPDarknet53(
+            activation0=activation0, activation1=activation1
+        )
+        self.panet = PANet(num_classes=num_classes, activation=activation1)
         self.yolov3_head = YOLOv3Head(
             anchors=anchors, num_classes=num_classes, xysclaes=xyscales
         )

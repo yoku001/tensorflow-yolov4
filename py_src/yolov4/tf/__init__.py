@@ -145,7 +145,7 @@ class YOLOv4:
         elif isinstance(xyscales, np.ndarray):
             self._xyscales = xyscales
 
-    def make_model(self):
+    def make_model(self, activation0: str = "mish", activation1: str = "leaky"):
         # pylint: disable=missing-function-docstring
         self._has_weights = False
         backend.clear_session()
@@ -155,6 +155,8 @@ class YOLOv4:
             anchors=self.anchors,
             num_classes=len(self.classes),
             xyscales=self.xyscales,
+            activation0=activation0,
+            activation1=activation1,
         )
         self.model(inputs)
 
