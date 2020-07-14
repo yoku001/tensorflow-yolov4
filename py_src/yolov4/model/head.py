@@ -41,6 +41,8 @@ class YOLOv3Head(Model):
         self.reshape2 = layers.Reshape((-1,))
 
         self.concat0 = layers.Concatenate(axis=-1)
+        self.concat1 = layers.Concatenate(axis=-1)
+        self.concat2 = layers.Concatenate(axis=-1)
 
     def build(self, input_shape):
         grid = (input_shape[0][1], input_shape[1][1], input_shape[2][1])
@@ -74,21 +76,40 @@ class YOLOv3Head(Model):
         raw_m = self.reshape1(raw_m)
         raw_l = self.reshape2(raw_l)
 
-        pred = []
-        for i, raw_pred in enumerate((raw_s, raw_m, raw_l)):
-            txty, twth, raw_conf, raw_prob = tf.split(
-                raw_pred, (2, 2, 1, self.num_classes), axis=-1
-            )
-            txty = (activations.sigmoid(txty) - self.a_half[i]) * self.scales[
-                i
-            ] + self.a_half[i]
-            bxby = (txty + self.grid_coord[i]) / self.grid_size[i]
+        txty_s, twth_s, conf_s, prob_s = tf.split(
+            raw_s, (2, 2, 1, self.num_classes), axis=-1
+        )
+        txty_m, twth_m, conf_m, prob_m = tf.split(
+            raw_m, (2, 2, 1, self.num_classes), axis=-1
+        )
+        txty_l, twth_l, conf_l, prob_l = tf.split(
+            raw_l, (2, 2, 1, self.num_classes), axis=-1
+        )
 
-            bwbh = (self.anchors[i] / self.image_size) * backend.exp(twth)
+        txty_s = activations.sigmoid(txty_s)
+        txty_s = (txty_s - self.a_half[0]) * self.scales[0] + self.a_half[0]
+        bxby_s = (txty_s + self.grid_coord[0]) / self.grid_size[0]
+        txty_m = activations.sigmoid(txty_m)
+        txty_m = (txty_m - self.a_half[1]) * self.scales[1] + self.a_half[1]
+        bxby_m = (txty_m + self.grid_coord[1]) / self.grid_size[1]
+        txty_l = activations.sigmoid(txty_l)
+        txty_l = (txty_l - self.a_half[2]) * self.scales[2] + self.a_half[2]
+        bxby_l = (txty_l + self.grid_coord[2]) / self.grid_size[2]
 
-            conf = activations.sigmoid(raw_conf)
-            prob = activations.sigmoid(raw_prob)
+        conf_s = activations.sigmoid(conf_s)
+        conf_m = activations.sigmoid(conf_m)
+        conf_l = activations.sigmoid(conf_l)
 
-            pred.append(self.concat0([bxby, bwbh, conf, prob]))
+        prob_s = activations.sigmoid(prob_s)
+        prob_m = activations.sigmoid(prob_m)
+        prob_l = activations.sigmoid(prob_l)
 
-        return pred
+        bwbh_s = (self.anchors[0] / self.image_size) * backend.exp(twth_s)
+        bwbh_m = (self.anchors[1] / self.image_size) * backend.exp(twth_m)
+        bwbh_l = (self.anchors[2] / self.image_size) * backend.exp(twth_l)
+
+        pred_s = self.concat0([bxby_s, bwbh_s, conf_s, prob_s])
+        pred_m = self.concat1([bxby_m, bwbh_m, conf_m, prob_m])
+        pred_l = self.concat2([bxby_l, bwbh_l, conf_l, prob_l])
+
+        return pred_s, pred_m, pred_l
