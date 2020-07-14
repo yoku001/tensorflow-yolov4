@@ -41,7 +41,9 @@ Ref: [https://www.tensorflow.org/lite/guide/python](https://www.tensorflow.org/l
 
 ## Performance
 
-<p align="center"><img src="test/performance.png" width="640"\></p>
+![performance](./test/performance.png)
+
+![performance-tiny](./test/performance-tiny.png)
 
 ## Help
 
