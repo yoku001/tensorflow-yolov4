@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import tensorflow as tf
 from tensorflow.keras import layers, Model, Sequential
 
 from .common import YOLOConv2D
@@ -216,3 +217,101 @@ class CSPDarknet53(Model):
         route3 = x
 
         return (route1, route2, route3)
+
+
+class CSPDarknet53Tiny(Model):
+    def __init__(self, activation: str = "leaky"):
+        super(CSPDarknet53Tiny, self).__init__(name="CSPDarknet53Tiny")
+        self.conv0 = YOLOConv2D(
+            filters=32, kernel_size=3, strides=2, activation=activation
+        )
+        self.conv1 = YOLOConv2D(
+            filters=64, kernel_size=3, strides=2, activation=activation
+        )
+
+        self.conv2 = YOLOConv2D(
+            filters=64, kernel_size=3, activation=activation
+        )
+        self.conv3 = YOLOConv2D(
+            filters=32, kernel_size=3, activation=activation
+        )
+        self.conv4 = YOLOConv2D(
+            filters=32, kernel_size=3, activation=activation
+        )
+        self.concat3_4 = layers.Concatenate(axis=-1)
+        self.conv5 = YOLOConv2D(
+            filters=64, kernel_size=1, activation=activation
+        )
+        self.concat2_5 = layers.Concatenate(axis=-1)
+        self.maxpool5 = layers.MaxPool2D((2, 2), strides=2, padding="same")
+
+        self.conv6 = YOLOConv2D(
+            filters=128, kernel_size=3, activation=activation
+        )
+        self.conv7 = YOLOConv2D(
+            filters=64, kernel_size=3, activation=activation
+        )
+        self.conv8 = YOLOConv2D(
+            filters=64, kernel_size=3, activation=activation
+        )
+        self.concat7_8 = layers.Concatenate(axis=-1)
+        self.conv9 = YOLOConv2D(
+            filters=128, kernel_size=1, activation=activation
+        )
+        self.concat6_9 = layers.Concatenate(axis=-1)
+        self.maxpool9 = layers.MaxPool2D((2, 2), strides=2, padding="same")
+
+        self.conv10 = YOLOConv2D(
+            filters=256, kernel_size=3, activation=activation
+        )
+        self.conv11 = YOLOConv2D(
+            filters=128, kernel_size=3, activation=activation
+        )
+        self.conv12 = YOLOConv2D(
+            filters=128, kernel_size=3, activation=activation
+        )
+        self.concat11_12 = layers.Concatenate(axis=-1)
+        self.conv13 = YOLOConv2D(
+            filters=256, kernel_size=1, activation=activation
+        )
+        self.concat10_13 = layers.Concatenate(axis=-1)
+        self.maxpool13 = layers.MaxPool2D((2, 2), strides=2, padding="same")
+
+        self.conv14 = YOLOConv2D(
+            filters=512, kernel_size=3, activation=activation
+        )
+
+    def call(self, x):
+        x1 = self.conv0(x)
+        x1 = self.conv1(x1)
+
+        x1 = self.conv2(x1)
+        _, x2 = tf.split(x1, 2, axis=-1)
+        x2 = self.conv3(x2)
+        x3 = self.conv4(x2)
+        x3 = self.concat3_4([x3, x2])
+        x3 = self.conv5(x3)
+        x3 = self.concat2_5([x1, x3])
+        x1 = self.maxpool5(x3)
+
+        x1 = self.conv6(x1)
+        _, x2 = tf.split(x1, 2, axis=-1)
+        x2 = self.conv7(x2)
+        x3 = self.conv8(x2)
+        x3 = self.concat7_8([x3, x2])
+        x3 = self.conv9(x3)
+        x3 = self.concat6_9([x1, x3])
+        x1 = self.maxpool9(x3)
+
+        x1 = self.conv10(x1)
+        _, x2 = tf.split(x1, 2, axis=-1)
+        x2 = self.conv11(x2)
+        x3 = self.conv12(x2)
+        x3 = self.concat11_12([x3, x2])
+        route1 = self.conv13(x3)
+        x3 = self.concat10_13([x1, route1])
+        x1 = self.maxpool13(x3)
+
+        route2 = self.conv14(x1)
+
+        return route1, route2
