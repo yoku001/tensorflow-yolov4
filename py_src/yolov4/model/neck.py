@@ -167,8 +167,8 @@ class PANet(Model):
         x2 = self.conv90(x2)
         x2 = self.conv91(x2)
 
-        s_pred = self.conv92(x2)
-        s_pred = self.conv93(s_pred)
+        pred_s = self.conv92(x2)
+        pred_s = self.conv93(pred_s)
 
         x2 = self.conv94(x2)
         x2 = self.concat84_94([x2, x1])
@@ -179,8 +179,8 @@ class PANet(Model):
         x2 = self.conv98(x2)
         x2 = self.conv99(x2)
 
-        m_pred = self.conv100(x2)
-        m_pred = self.conv101(m_pred)
+        pred_m = self.conv100(x2)
+        pred_m = self.conv101(pred_m)
 
         x2 = self.conv102(x2)
         x2 = self.concat77_102([x2, route3])
@@ -191,7 +191,52 @@ class PANet(Model):
         x2 = self.conv106(x2)
         x2 = self.conv107(x2)
 
-        l_pred = self.conv108(x2)
-        l_pred = self.conv109(l_pred)
+        pred_l = self.conv108(x2)
+        pred_l = self.conv109(pred_l)
 
-        return s_pred, m_pred, l_pred
+        return pred_s, pred_m, pred_l
+
+
+class PANetTiny(Model):
+    def __init__(self, num_classes, activation: str = "leaky"):
+        super(PANetTiny, self).__init__(name="PANetTiny")
+        self.conv15 = YOLOConv2D(
+            filters=256, kernel_size=1, activation=activation
+        )
+
+        self.conv16 = YOLOConv2D(
+            filters=512, kernel_size=3, activation=activation
+        )
+        self.conv17 = YOLOConv2D(
+            filters=3 * (num_classes + 5), kernel_size=1, activation=None
+        )
+
+        self.conv18 = YOLOConv2D(
+            filters=128, kernel_size=1, activation=activation
+        )
+        self.upSampling18 = layers.UpSampling2D(interpolation="bilinear")
+        self.concat13_18 = layers.Concatenate(axis=-1)
+
+        self.conv19 = YOLOConv2D(
+            filters=256, kernel_size=3, activation=activation
+        )
+        self.conv20 = YOLOConv2D(
+            filters=3 * (num_classes + 5), kernel_size=1, activation=None
+        )
+
+    def call(self, x):
+        route1, route2 = x
+
+        x1 = self.conv15(route2)
+
+        x2 = self.conv16(x1)
+        pred_l = self.conv17(x2)
+
+        x1 = self.conv18(x1)
+        x1 = self.upSampling18(x1)
+        x1 = self.concat13_18([x1, route1])
+
+        x1 = self.conv19(x1)
+        pred_m = self.conv20(x1)
+
+        return pred_m, pred_l
