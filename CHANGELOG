@@ -1,3 +1,18 @@
+tensorflow-yolov4 (0.15.0) unstable; urgency=medium
+
+  * tf: add quantization and data_set args to save_as_tflite
+  * utility: media: add string length check
+  * model: add activation args
+  * model: head: remove for loop
+  * model: backbone: implement CSPDarknet53Tiny
+  * model: neck: implement PANetTiny
+  * model: head: implement YOLOv3HeadTiny
+  * model: yolov4: implement YOLOv4Tiny
+  * tf: weights: implement *_tiny_* funcs
+  * tf: reflect YOLOv4Tiny
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Wed, 15 Jul 2020 03:43:03 +0900
+
 tensorflow-yolov4 (0.14.0) unstable; urgency=medium
 
   * github: add python publish action
