@@ -175,8 +175,13 @@ def read_classes_names(classes_name_path):
     """
     @return {id: class name}
     """
-    names = {}
-    with open(classes_name_path, "r") as data:
-        for ID, name in enumerate(data):
-            names[ID] = name.strip("\n")
-    return names
+    classes = {}
+    with open(classes_name_path, "r") as fd:
+        index = 0
+        for class_name in fd:
+            class_name = class_name.strip()
+            if len(class_name) != 0:
+                classes[index] = class_name
+                index += 1
+
+    return classes
