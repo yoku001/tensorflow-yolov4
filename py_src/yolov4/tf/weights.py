@@ -24,12 +24,15 @@ SOFTWARE.
 import numpy as np
 
 
-def load_weights(model, weights_file):
+def load_weights(model, weights_file, tiny: bool = False):
     with open(weights_file, "rb") as fd:
         # major, minor, revision, seen, _
         _np_fromfile(fd, dtype=np.int32, count=5)
 
-        ret = yolov4_set_weights(model, fd)
+        if tiny:
+            ret = yolov4_tiny_set_weignts(model, fd)
+        else:
+            ret = yolov4_set_weights(model, fd)
 
         if len(fd.read()) != 0:
             raise ValueError("Model and weights file do not match.")
@@ -135,11 +138,36 @@ def csp_darknet53_set_weights(csp_darknet53, fd):
     return True
 
 
+def csp_darknet53_tiny_set_weights(csp_darknet53_tiny, fd):
+    if not yolo_conv2d_set_weights(csp_darknet53_tiny.get_layer(index=0), fd):
+        return False
+
+    for i in range(1, 15):
+        layer_name = "yolo_conv2d_%d" % i
+
+        yolo_conv2d = csp_darknet53_tiny.get_layer(layer_name)
+        if not yolo_conv2d_set_weights(yolo_conv2d, fd):
+            return False
+
+    return True
+
+
 def panet_set_weights(panet, fd):
     for i in range(78, 110):
         layer_name = "yolo_conv2d_%d" % i
 
         yolo_conv2d = panet.get_layer(layer_name)
+        if not yolo_conv2d_set_weights(yolo_conv2d, fd):
+            return False
+
+    return True
+
+
+def panet_tiny_set_weights(panet_tiny, fd):
+    for i in range(15, 21):
+        layer_name = "yolo_conv2d_%d" % i
+
+        yolo_conv2d = panet_tiny.get_layer(layer_name)
         if not yolo_conv2d_set_weights(yolo_conv2d, fd):
             return False
 
@@ -155,6 +183,20 @@ def yolov4_set_weights(yolov4, fd):
     panet = yolov4.get_layer("PANet")
 
     if not panet_set_weights(panet, fd):
+        return False
+
+    return True
+
+
+def yolov4_tiny_set_weignts(yolov4_tiny, fd):
+    csp_darknet53_tiny = yolov4_tiny.get_layer("CSPDarknet53Tiny")
+
+    if not csp_darknet53_tiny_set_weights(csp_darknet53_tiny, fd):
+        return False
+
+    panet_tiny = yolov4_tiny.get_layer("PANetTiny")
+
+    if not panet_tiny_set_weights(panet_tiny, fd):
         return False
 
     return True
