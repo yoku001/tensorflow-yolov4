@@ -46,6 +46,8 @@ class YOLOv4:
             [[36, 75], [76, 55], [72, 146]],
             [[142, 110], [192, 243], [459, 401]],
         ]
+        # Tiny
+        # [[[23, 27], [37, 58], [81, 82]], [[81, 82], [135, 169], [344, 319]]]
         self.batch_size = 32
         self.subdivision = 16
         self._classes = None
@@ -53,7 +55,11 @@ class YOLOv4:
         self.input_size = 608
         self.model = None
         self.strides = [8, 16, 32]
+        # Tiny
+        # [16, 32]
         self.xyscales = [1.2, 1.1, 1.05]
+        # Tiny
+        # [1.05, 1.05]
 
     @property
     def anchors(self):
@@ -74,7 +80,10 @@ class YOLOv4:
         elif isinstance(anchors, np.ndarray):
             self._anchors = anchors
 
-        self._anchors = self._anchors.astype(np.float32).reshape(3, 3, 2)
+        if self.anchors.size == 18:
+            self._anchors = self._anchors.astype(np.float32).reshape(3, 3, 2)
+        else:
+            self._anchors = self._anchors.astype(np.float32).reshape(2, 3, 2)
 
     @property
     def classes(self):
@@ -145,29 +154,44 @@ class YOLOv4:
         elif isinstance(xyscales, np.ndarray):
             self._xyscales = xyscales
 
-    def make_model(self, activation0: str = "mish", activation1: str = "leaky"):
+    def make_model(
+        self,
+        activation0: str = "mish",
+        activation1: str = "leaky",
+        tiny: bool = False,
+    ):
         # pylint: disable=missing-function-docstring
         self._has_weights = False
         backend.clear_session()
 
         inputs = layers.Input([self.input_size, self.input_size, 3])
-        self.model = yolov4.YOLOv4(
-            anchors=self.anchors,
-            num_classes=len(self.classes),
-            xyscales=self.xyscales,
-            activation0=activation0,
-            activation1=activation1,
-        )
+        if tiny:
+            self.model = yolov4.YOLOv4Tiny(
+                anchors=self.anchors,
+                num_classes=len(self.classes),
+                xyscales=self.xyscales,
+                activation=activation1,
+            )
+        else:
+            self.model = yolov4.YOLOv4(
+                anchors=self.anchors,
+                num_classes=len(self.classes),
+                xyscales=self.xyscales,
+                activation0=activation0,
+                activation1=activation1,
+            )
         self.model(inputs)
 
-    def load_weights(self, weights_path: str, weights_type: str = "tf"):
+    def load_weights(
+        self, weights_path: str, weights_type: str = "tf", tiny: bool = False
+    ):
         """
         Usage:
             yolo.load_weights("yolov4.weights", weights_type="yolo")
             yolo.load_weights("checkpoints")
         """
         if weights_type == "yolo":
-            weights.load_weights(self.model, weights_path)
+            weights.load_weights(self.model, weights_path, tiny=tiny)
         elif weights_type == "tf":
             self.model.load_weights(weights_path).expect_partial()
 
