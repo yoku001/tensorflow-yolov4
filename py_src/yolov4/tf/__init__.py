@@ -37,29 +37,37 @@ from ..utility import media, predict
 
 
 class YOLOv4:
-    def __init__(self):
+    def __init__(self, tiny: bool = False):
         """
         Default configuration
         """
-        self.anchors = [
-            [[12, 16], [19, 36], [40, 28]],
-            [[36, 75], [76, 55], [72, 146]],
-            [[142, 110], [192, 243], [459, 401]],
-        ]
-        # Tiny
-        # [[[23, 27], [37, 58], [81, 82]], [[81, 82], [135, 169], [344, 319]]]
+        self.tiny = tiny
+
+        if tiny:
+            self.anchors = [
+                [[23, 27], [37, 58], [81, 82]],
+                [[81, 82], [135, 169], [344, 319]],
+            ]
+        else:
+            self.anchors = [
+                [[12, 16], [19, 36], [40, 28]],
+                [[36, 75], [76, 55], [72, 146]],
+                [[142, 110], [192, 243], [459, 401]],
+            ]
         self.batch_size = 32
         self.subdivision = 16
         self._classes = None
         self._has_weights = False
         self.input_size = 608
         self.model = None
-        self.strides = [8, 16, 32]
-        # Tiny
-        # [16, 32]
-        self.xyscales = [1.2, 1.1, 1.05]
-        # Tiny
-        # [1.05, 1.05]
+        if tiny:
+            self.strides = [16, 32]
+        else:
+            self.strides = [8, 16, 32]
+        if tiny:
+            self.xyscales = [1.05, 1.05]
+        else:
+            self.xyscales = [1.2, 1.1, 1.05]
 
     @property
     def anchors(self):
@@ -80,10 +88,10 @@ class YOLOv4:
         elif isinstance(anchors, np.ndarray):
             self._anchors = anchors
 
-        if self.anchors.size == 18:
-            self._anchors = self._anchors.astype(np.float32).reshape(3, 3, 2)
-        else:
+        if self.tiny:
             self._anchors = self._anchors.astype(np.float32).reshape(2, 3, 2)
+        else:
+            self._anchors = self._anchors.astype(np.float32).reshape(3, 3, 2)
 
     @property
     def classes(self):
@@ -155,17 +163,14 @@ class YOLOv4:
             self._xyscales = xyscales
 
     def make_model(
-        self,
-        activation0: str = "mish",
-        activation1: str = "leaky",
-        tiny: bool = False,
+        self, activation0: str = "mish", activation1: str = "leaky",
     ):
         # pylint: disable=missing-function-docstring
         self._has_weights = False
         backend.clear_session()
 
         inputs = layers.Input([self.input_size, self.input_size, 3])
-        if tiny:
+        if self.tiny:
             self.model = yolov4.YOLOv4Tiny(
                 anchors=self.anchors,
                 num_classes=len(self.classes),
@@ -182,16 +187,14 @@ class YOLOv4:
             )
         self.model(inputs)
 
-    def load_weights(
-        self, weights_path: str, weights_type: str = "tf", tiny: bool = False
-    ):
+    def load_weights(self, weights_path: str, weights_type: str = "tf"):
         """
         Usage:
             yolo.load_weights("yolov4.weights", weights_type="yolo")
             yolo.load_weights("checkpoints")
         """
         if weights_type == "yolo":
-            weights.load_weights(self.model, weights_path, tiny=tiny)
+            weights.load_weights(self.model, weights_path, tiny=self.tiny)
         elif weights_type == "tf":
             self.model.load_weights(weights_path).expect_partial()
 
