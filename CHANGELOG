@@ -1,3 +1,9 @@
+tensorflow-yolov4 (0.16.0) unstable; urgency=medium
+
+  * tf: add tiny argument to __init__ and remove from others
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Wed, 15 Jul 2020 13:21:12 +0900
+
 tensorflow-yolov4 (0.15.0) unstable; urgency=medium
 
   * tf: add quantization and data_set args to save_as_tflite
