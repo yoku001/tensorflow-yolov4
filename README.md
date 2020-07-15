@@ -76,16 +76,16 @@ yolo.inference(media_path="road.mp4", is_image=False)
 ```python
 from yolov4.tf import YOLOv4
 
-yolo = YOLOv4()
+yolo = YOLOv4(tiny=True)
 
 yolo.classes = "coco.names"
-yolo.anchors = [[[23, 27], [37, 58], [81, 82]], [[81, 82], [135, 169], [344, 319]]]
-yolo.xyscales = [1.05, 1.05]
 
-yolo.make_model(tiny=True)
-yolo.load_weights("yolov4-tiny.weights", weights_type="yolo", tiny=True)
+yolo.make_model()
+yolo.load_weights("yolov4-tiny.weights", weights_type="yolo")
 
 yolo.inference(media_path="kite.jpg")
+
+yolo.inference(media_path="road.mp4", is_image=False)
 ```
 
 ### tensorflow lite
