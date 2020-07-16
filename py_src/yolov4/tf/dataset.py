@@ -70,7 +70,7 @@ class Dataset:
                 ),
                 (1, 1, 1, 3, 1),
             ).astype(np.float32)
-            for i in range(3)
+            for i in range(len(self.grid_size))
         ]
 
         self.dataset = self.load_dataset()
@@ -145,11 +145,10 @@ class Dataset:
                 ),
                 dtype=np.float32,
             )
-            for i in range(3)
+            for i in range(len(self.grid_size))
         ]
-        ground_truth[0][..., 0:2] = self.grid[0]
-        ground_truth[1][..., 0:2] = self.grid[1]
-        ground_truth[2][..., 0:2] = self.grid[2]
+        for i in range(len(self.grid)):
+            ground_truth[i][..., 0:2] = self.grid[i]
 
         for bbox in bboxes:
             # [b_x, b_y, b_w, b_h, class_id]
@@ -167,7 +166,7 @@ class Dataset:
 
             ious = []
             exist_positive = False
-            for i in range(3):
+            for i in range(len(self.grid)):
                 # Dim(anchors, xywh)
                 anchors_xywh = np.zeros((3, 4), dtype=np.float32)
                 anchors_xywh[:, 0:2] = xywh[0:2]
@@ -250,20 +249,14 @@ class Dataset:
         """
         if self.batch_size > 1:
             batch_x = []
-            batch_y_s = []
-            batch_y_l = []
-            batch_y_m = []
+            _batch_y = [[] for _ in range(len(self.grid_size))]
             for _ in range(self.batch_size):
                 x, y = self.preprocess_dataset(self.dataset[self.count])
                 batch_x.append(x)
-                batch_y_s.append(y[0])
-                batch_y_m.append(y[1])
-                batch_y_l.append(y[2])
+                for i in range(len(y)):
+                    _batch_y[i].append(y[i])
             batch_x = np.concatenate(batch_x, axis=0)
-            batch_y_s = np.concatenate(batch_y_s, axis=0)
-            batch_y_m = np.concatenate(batch_y_m, axis=0)
-            batch_y_l = np.concatenate(batch_y_l, axis=0)
-            batch_y = (batch_y_s, batch_y_m, batch_y_l)
+            batch_y = [np.concatenate(b_y, axis=0) for b_y in _batch_y]
         else:
             batch_x, batch_y = self.preprocess_dataset(self.dataset[self.count])
 
