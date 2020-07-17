@@ -196,7 +196,7 @@ class YOLOv4:
         if weights_type == "yolo":
             weights.load_weights(self.model, weights_path, tiny=self.tiny)
         elif weights_type == "tf":
-            self.model.load_weights(weights_path).expect_partial()
+            self.model.load_weights(weights_path)
 
         self._has_weights = True
 
