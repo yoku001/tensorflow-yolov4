@@ -69,7 +69,7 @@ class YOLOv4:
         self.input_size = input_details["shape"][1]
         self.input_index = input_details["index"]
         output_details = self.interpreter.get_output_details()
-        self.output_index = [output_details[i]["index"] for i in range(3)]
+        self.output_index = [output_details[i]["index"] for i in range(len(output_details))]
 
     def resize_image(self, image, ground_truth=None):
         """
@@ -138,7 +138,7 @@ class YOLOv4:
         self.interpreter.set_tensor(self.input_index, image_data)
         self.interpreter.invoke()
         candidates = [
-            self.interpreter.get_tensor(self.output_index[i]) for i in range(3)
+            self.interpreter.get_tensor(self.output_index[i]) for i in range(len(self.output_index))
         ]
         _candidates = []
         for candidate in candidates:
