@@ -37,11 +37,12 @@ from ..utility import media, predict
 
 
 class YOLOv4:
-    def __init__(self, tiny: bool = False):
+    def __init__(self, tiny: bool = False, tpu: bool = False):
         """
         Default configuration
         """
         self.tiny = tiny
+        self.tpu = tpu
 
         if tiny:
             self.anchors = [
@@ -176,6 +177,7 @@ class YOLOv4:
                 num_classes=len(self.classes),
                 xyscales=self.xyscales,
                 activation=activation1,
+                tpu=self.tpu,
             )
         else:
             self.model = yolov4.YOLOv4(

@@ -94,7 +94,12 @@ class YOLOv4(Model):
 
 class YOLOv4Tiny(Model):
     def __init__(
-        self, anchors, num_classes: int, xyscales, activation: str = "leaky",
+        self,
+        anchors,
+        num_classes: int,
+        xyscales,
+        activation: str = "leaky",
+        tpu: bool = False,
     ):
         super(YOLOv4Tiny, self).__init__(name="YOLOv4Tiny")
         self.csp_darknet53_tiny = CSPDarknet53Tiny(activation=activation)
@@ -102,7 +107,7 @@ class YOLOv4Tiny(Model):
             num_classes=num_classes, activation=activation
         )
         self.yolov3_head_tiny = YOLOv3HeadTiny(
-            anchors=anchors, num_classes=num_classes, xysclaes=xyscales
+            anchors=anchors, num_classes=num_classes, xysclaes=xyscales, tpu=tpu
         )
 
     def call(self, x):

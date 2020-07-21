@@ -116,7 +116,7 @@ class YOLOv3Head(Model):
 
 
 class YOLOv3HeadTiny(Model):
-    def __init__(self, anchors, num_classes, xysclaes):
+    def __init__(self, anchors, num_classes, xysclaes, tpu: bool = False):
         super(YOLOv3HeadTiny, self).__init__(name="YOLOv3HeadTiny")
         self.a_half = None
         self.anchors = anchors
@@ -125,6 +125,7 @@ class YOLOv3HeadTiny(Model):
         self.image_size = None
         self.num_classes = num_classes
         self.scales = xysclaes
+        self.tpu = tpu
 
         self.reshape0 = layers.Reshape((-1,))
         self.reshape1 = layers.Reshape((-1,))
@@ -158,6 +159,12 @@ class YOLOv3HeadTiny(Model):
 
     def call(self, x):
         raw_m, raw_l = x
+
+        sig_m = activations.sigmoid(raw_m)
+        sig_l = activations.sigmoid(raw_l)
+
+        if self.tpu:
+            return sig_m, raw_m, sig_l, raw_l
 
         raw_m = self.reshape0(raw_m)
         raw_l = self.reshape1(raw_l)
