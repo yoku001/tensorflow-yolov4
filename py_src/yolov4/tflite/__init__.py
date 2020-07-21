@@ -33,10 +33,12 @@ from ..utility import media, predict
 
 
 class YOLOv4:
-    def __init__(self):
+    def __init__(self, tpu: bool = False):
         """
         Default configuration
         """
+        self.tpu = tpu
+
         self._classes = None
         self.input_index = None
         self.input_size = None
@@ -63,7 +65,15 @@ class YOLOv4:
             raise TypeError("YOLOv4: Set classes path or dictionary")
 
     def load_tflite(self, tflite_path):
-        self.interpreter = tflite.Interpreter(model_path=tflite_path)
+        if self.tpu:
+            self.interpreter = tflite.Interpreter(
+                model_path=tflite_path,
+                experimental_delegates=[
+                    tflite.load_delegate("libedgetpu.so.1")
+                ],
+            )
+        else:
+            self.interpreter = tflite.Interpreter(model_path=tflite_path)
         self.interpreter.allocate_tensors()
         input_details = self.interpreter.get_input_details()[0]
         self.input_size = input_details["shape"][1]
