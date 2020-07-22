@@ -87,6 +87,7 @@ class YOLOv4(BaseClass):
 
         for i in range(len(self.output_size)):
             for j in range(3):
+                # pylint: disable=unbalanced-tuple-unpacking
                 # sig
                 txty, _, conf_prob = np.split(x[2 * i][j], (2, 4), axis=-1)
                 # raw

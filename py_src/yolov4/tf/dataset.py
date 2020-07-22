@@ -253,8 +253,8 @@ class Dataset:
             for _ in range(self.batch_size):
                 x, y = self.preprocess_dataset(self.dataset[self.count])
                 batch_x.append(x)
-                for i in range(len(y)):
-                    _batch_y[i].append(y[i])
+                for i, _y in enumerate(y):
+                    _batch_y[i].append(_y)
             batch_x = np.concatenate(batch_x, axis=0)
             batch_y = [np.concatenate(b_y, axis=0) for b_y in _batch_y]
         else:
