@@ -29,40 +29,19 @@ import cv2
 import numpy as np
 import tflite_runtime.interpreter as tflite
 
-from ..utility import media, predict
+from ..common import media, predict
+from ..common.base_class import BaseClass
 
 
-class YOLOv4:
-    def __init__(self, tpu: bool = False):
+class YOLOv4(BaseClass):
+    def __init__(self, tiny: bool = False, tpu: bool = False):
         """
         Default configuration
         """
-        self.tpu = tpu
-
-        self._classes = None
+        super(YOLOv4, self).__init__(tiny=tiny, tpu=tpu)
         self.input_index = None
-        self.input_size = None
         self.interpreter = None
         self.output_index = None
-
-    @property
-    def classes(self):
-        """
-        Usage:
-            yolo.classes = {0: 'person', 1: 'bicycle', 2: 'car', ...}
-            yolo.classes = "path/classes"
-            print(len(yolo.classes))
-        """
-        return self._classes
-
-    @classes.setter
-    def classes(self, data: Union[str, dict]):
-        if isinstance(data, str):
-            self._classes = media.read_classes_names(data)
-        elif isinstance(data, dict):
-            self._classes = data
-        else:
-            raise TypeError("YOLOv4: Set classes path or dictionary")
 
     def load_tflite(self, tflite_path):
         if self.tpu:
@@ -80,51 +59,6 @@ class YOLOv4:
         self.input_index = input_details["index"]
         output_details = self.interpreter.get_output_details()
         self.output_index = [details["index"] for details in output_details]
-
-    def resize_image(self, image, ground_truth=None):
-        """
-        @param image:        Dim(height, width, channels)
-        @param ground_truth: [[center_x, center_y, w, h, class_id], ...]
-
-        @return resized_image or (resized_image, resized_ground_truth)
-
-        Usage:
-            image = yolo.resize_image(image)
-            image, ground_truth = yolo.resize_image(image, ground_truth)
-        """
-        return media.resize_image(
-            image, target_size=self.input_size, ground_truth=ground_truth
-        )
-
-    def candidates_to_pred_bboxes(self, candidates):
-        """
-        @param candidates: Dim(-1, (x, y, w, h, conf, prob_0, prob_1, ...))
-
-        @return Dim(-1, (x, y, w, h, class_id, probability))
-        """
-        return predict.candidates_to_pred_bboxes(candidates, self.input_size)
-
-    def fit_pred_bboxes_to_original(self, pred_bboxes, original_shape):
-        """
-        @param pred_bboxes:    Dim(-1, (x, y, w, h, class_id, probability))
-        @param original_shape: (height, width, channels)
-        """
-        # pylint: disable=no-self-use
-        return predict.fit_pred_bboxes_to_original(pred_bboxes, original_shape)
-
-    def draw_bboxes(self, image, bboxes):
-        """
-        @parma image:  Dim(height, width, channel)
-        @param bboxes: (candidates, 4) or (candidates, 5)
-                [[center_x, center_y, w, h, class_id], ...]
-                [[center_x, center_y, w, h, class_id, propability], ...]
-
-        @return drawn_image
-
-        Usage:
-            image = yolo.draw_bboxes(image, bboxes)
-        """
-        return media.draw_bboxes(image, bboxes, self.classes)
 
     #############
     # Inference #
