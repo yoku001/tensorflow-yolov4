@@ -48,8 +48,8 @@ def resize_image(
     # Resize
     if max(height, width) != target_size:
         scale = min(target_size / width, target_size / height)
-        new_width = round(width * scale)
-        new_height = round(height * scale)
+        new_width = int(round(width * scale))
+        new_height = int(round(height * scale))
         resized_image = cv2.resize(image, (new_width, new_height))
     else:
         new_width = width
