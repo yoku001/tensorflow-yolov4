@@ -109,7 +109,13 @@ class YOLOv4(BaseClass):
 
         self._has_weights = True
 
-    def save_as_tflite(self, tflite_path, quantization=None, data_set=None):
+    def save_as_tflite(
+        self,
+        tflite_path,
+        quantization=None,
+        data_set=None,
+        num_calibration_steps: int = 100,
+    ):
         """
         Save model and weights as tflite
 
@@ -121,7 +127,7 @@ class YOLOv4(BaseClass):
         converter = tf.lite.TFLiteConverter.from_keras_model(self.model)
 
         def representative_dataset_gen():
-            for _ in range(20):
+            for _ in range(num_calibration_steps):
                 # pylint: disable=stop-iteration-return
                 # TODO: # of iteration
                 images, _ = next(data_set)
