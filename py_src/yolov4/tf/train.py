@@ -46,7 +46,11 @@ class YOLOv4Loss(Loss):
         @param y_pred: Dim(batch, grid, grid, 3,
                                 (b_x, b_y, b_w, b_h, conf, prob_0, prob_1, ...))
         """
-        _, grid_size, _, _, box_size = y_pred.shape
+        if len(y_pred.shape) == 4:
+            _, grid_size, _, box_size = y_pred.shape
+            box_size = box_size // 3
+        else:
+            _, grid_size, _, _, box_size = y_pred.shape
 
         y_true = tf.reshape(
             y_true, shape=(-1, grid_size * grid_size * 3, box_size)
