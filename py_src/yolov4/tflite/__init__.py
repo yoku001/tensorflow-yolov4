@@ -27,7 +27,11 @@ from typing import Union
 
 import cv2
 import numpy as np
-import tflite_runtime.interpreter as tflite
+
+try:
+    import tensorflow.lite as tflite
+except ModuleNotFoundError:
+    import tflite_runtime.interpreter as tflite
 
 from ..common import media, predict
 from ..common.base_class import BaseClass
