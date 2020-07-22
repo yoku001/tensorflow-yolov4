@@ -46,6 +46,7 @@ class YOLOv4(BaseClass):
         self.input_index = None
         self.interpreter = None
         self.output_index = None
+        self.output_size = None
 
     def load_tflite(self, tflite_path):
         if self.tpu:
@@ -63,6 +64,12 @@ class YOLOv4(BaseClass):
         self.input_index = input_details["index"]
         output_details = self.interpreter.get_output_details()
         self.output_index = [details["index"] for details in output_details]
+        if self.tpu:
+            # sig, raw, sig, raw, ...
+            self.output_size = [
+                output_details[2 * i]["shape"][1]
+                for i in range(len(output_details) // 2)
+            ]
 
     #############
     # Inference #
