@@ -43,6 +43,7 @@ class YOLOv4(BaseClass):
         Default configuration
         """
         super(YOLOv4, self).__init__(tiny=tiny, tpu=tpu)
+        self.grid_coord = []
         self.input_index = None
         self.interpreter = None
         self.output_index = None
@@ -70,6 +71,12 @@ class YOLOv4(BaseClass):
                 output_details[2 * i]["shape"][1]
                 for i in range(len(output_details) // 2)
             ]
+            self.grid_coord = []
+            for _size in self.output_size:
+                xy_grid = np.meshgrid(np.arange(_size), np.arange(_size))
+                xy_grid = np.stack(xy_grid, axis=-1)
+                xy_grid = xy_grid[np.newaxis, ...]
+                self.grid_coord.append(xy_grid)
 
     #############
     # Inference #
