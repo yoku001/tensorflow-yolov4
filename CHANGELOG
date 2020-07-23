@@ -1,3 +1,11 @@
+tensorflow-yolov4 (0.19.0) unstable; urgency=medium
+
+  * tf: weights: modify 'set' to 'load'
+  * tf: weights: implement *_save_weights
+  * tf: add save_weights()
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Fri, 24 Jul 2020 06:22:14 +0900
+
 tensorflow-yolov4 (0.18.0) unstable; urgency=medium
 
   * yolov4: clarify batch number
