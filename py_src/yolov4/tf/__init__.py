@@ -88,6 +88,17 @@ class YOLOv4(BaseClass):
 
         self._has_weights = True
 
+    def save_weights(self, weights_path: str, weights_type: str = "tf"):
+        """
+        Usage:
+            yolo.save_weights("yolov4.weights", weights_type="yolo")
+            yolo.save_weights("checkpoints")
+        """
+        if weights_type == "yolo":
+            weights.save_weights(self.model, weights_path, tiny=self.tiny)
+        elif weights_type == "tf":
+            self.model.save_weights(weights_path)
+
     def save_as_tflite(
         self,
         tflite_path,
