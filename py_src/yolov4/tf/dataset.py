@@ -236,13 +236,18 @@ class Dataset:
     def __next__(self):
         """
         @return image, ground_truth
-            ground_truth == (s_truth, m_truth, l_truth)
+            ground_truth == (s_truth, m_truth, l_truth) or (m_truth, l_truth)
         """
         if self.batch_size > 1:
             batch_x = []
             _batch_y = [[] for _ in range(len(self.grid_size))]
             for _ in range(self.batch_size):
                 x, y = self.preprocess_dataset(self.dataset[self.count])
+                self.count += 1
+                if self.count == len(self.dataset):
+                    np.random.shuffle(self.dataset)
+                    self.count = 0
+
                 batch_x.append(x)
                 for i, _y in enumerate(y):
                     _batch_y[i].append(_y)
@@ -250,11 +255,10 @@ class Dataset:
             batch_y = [np.concatenate(b_y, axis=0) for b_y in _batch_y]
         else:
             batch_x, batch_y = self.preprocess_dataset(self.dataset[self.count])
-
-        self.count += 1
-        if self.count == len(self.dataset):
-            np.random.shuffle(self.dataset)
-            self.count = 0
+            self.count += 1
+            if self.count == len(self.dataset):
+                np.random.shuffle(self.dataset)
+                self.count = 0
 
         return batch_x, batch_y
 
