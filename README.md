@@ -10,7 +10,12 @@ python3 -m pip install yolov4
 
 YOLOv4 Implemented in Tensorflow 2.
 
-Download yolov4.weights file: https://drive.google.com/open?id=1cewMfusmPjYWbrnuJRuKhPMwRe_b9PaT
+## Download Weights
+
+- [yolov4-tiny.conv.29](https://drive.google.com/file/d/1WtOuGfUgNyNfALo5_VhQ1kb5QenRE0Gt/view?usp=sharing)
+- [yolov4-tiny.weights](https://drive.google.com/file/d/1GJwGiR7rizY_19c_czuLN8p31BwkhWY5/view?usp=sharing)
+- [yolov4.conv.137](https://drive.google.com/file/d/1li1pUtqpXj_-ZXxA8wJq-nzW8h2HWsrP/view?usp=sharing)
+- [yolov4.weights](https://drive.google.com/file/d/15P4cYyZ2Sd876HKAEWSmeRdFl_j-0upi/view?usp=sharing)
 
 ## Dependencies
 
@@ -37,7 +42,9 @@ Ref: [https://www.tensorflow.org/lite/guide/python](https://www.tensorflow.org/l
 ## Objective
 
 - [x] Train and predict using TensorFlow 2 only
-- [ ] Run yolov4 on Coral board(TPU).
+- [x] Run yolov4 on Coral board(TPU).
+- [ ] Update Docs
+- [ ] Optimize model and operations
 
 ## Performance
 
@@ -141,7 +148,8 @@ optimizer = optimizers.Adam(learning_rate=1e-4)
 yolo.compile(optimizer=optimizer, loss_iou_type="ciou")
 
 yolo.fit(data_set, epochs=1500)
-yolo.model.save_weights("checkpoints")
+yolo.save_weights("checkpoints")
+# yolo.save_weights("yolov4.weights", weights_type="yolo")
 ```
 
 [Custom training on Colab jupyter notebook](./test/custom_training_on_colab.ipynb)
