@@ -159,7 +159,9 @@ class YOLOv4(BaseClass):
         for candidate in candidates:
             grid_size = candidate.shape[1]
             _candidates.append(
-                tf.reshape(candidate, shape=(1, grid_size * grid_size * 3, -1))
+                tf.reshape(
+                    candidate[0], shape=(1, grid_size * grid_size * 3, -1)
+                )
             )
         candidates = np.concatenate(_candidates, axis=1)
 
