@@ -1,3 +1,12 @@
+tensorflow-yolov4 (0.18.0) unstable; urgency=medium
+
+  * yolov4: clarify batch number
+  * tf: remove by_name in load_weights
+  * tf: dataset: simplify code
+  * tf: dataset: fix problem of making a batch with same image
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Thu, 23 Jul 2020 20:30:23 +0900
+
 tensorflow-yolov4 (0.17.0) unstable; urgency=medium
 
   * tf: dataset: fix index range for Tiny
