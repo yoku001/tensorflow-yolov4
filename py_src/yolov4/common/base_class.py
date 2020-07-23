@@ -51,6 +51,10 @@ class BaseClass:
         self._classes = None
         self._input_size = None
         if tiny:
+            self.strides = [16, 32]
+        else:
+            self.strides = [8, 16, 32]
+        if tiny:
             self.xyscales = [1.05, 1.05]
         else:
             self.xyscales = [1.2, 1.1, 1.05]
@@ -113,6 +117,23 @@ class BaseClass:
             self._input_size = size
         else:
             raise ValueError("YOLOv4: Set input_size to multiples of 32")
+
+    @property
+    def strides(self):
+        """
+        Usage:
+            yolo.strides = [8, 16, 32]
+            yolo.strides = np.array([8, 16, 32])
+            print(yolo.strides)
+        """
+        return self._strides
+
+    @strides.setter
+    def strides(self, strides: Union[list, tuple, np.ndarray]):
+        if isinstance(strides, (list, tuple)):
+            self._strides = np.array(strides)
+        elif isinstance(strides, np.ndarray):
+            self._strides = strides
 
     @property
     def xyscales(self):

@@ -48,27 +48,6 @@ class YOLOv4(BaseClass):
         self._has_weights = False
         self.input_size = 608
         self.model = None
-        if tiny:
-            self.strides = [16, 32]
-        else:
-            self.strides = [8, 16, 32]
-
-    @property
-    def strides(self):
-        """
-        Usage:
-            yolo.strides = [8, 16, 32]
-            yolo.strides = np.array([8, 16, 32])
-            print(yolo.strides)
-        """
-        return self._strides
-
-    @strides.setter
-    def strides(self, strides: Union[list, tuple, np.ndarray]):
-        if isinstance(strides, (list, tuple)):
-            self._strides = np.array(strides)
-        elif isinstance(strides, np.ndarray):
-            self._strides = strides
 
     def make_model(
         self, activation0: str = "mish", activation1: str = "leaky",
