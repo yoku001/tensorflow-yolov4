@@ -59,18 +59,16 @@ class Dataset:
                 np.reshape(
                     np.stack(
                         np.meshgrid(
-                            (np.arange(self.grid_size[i]) + 0.5)
-                            / self.grid_size[i],
-                            (np.arange(self.grid_size[i]) + 0.5)
-                            / self.grid_size[i],
+                            (np.arange(_size) + 0.5) / _size,
+                            (np.arange(_size) + 0.5) / _size,
                         ),
                         axis=-1,
                     ),
-                    (1, self.grid_size[i], self.grid_size[i], 1, 2),
+                    (1, _size, _size, 1, 2),
                 ),
                 (1, 1, 1, 3, 1),
             ).astype(np.float32)
-            for i in range(len(self.grid_size))
+            for _size in self.grid_size
         ]
 
         self.dataset = self.load_dataset()
@@ -136,19 +134,12 @@ class Dataset:
         """
         ground_truth = [
             np.zeros(
-                (
-                    1,
-                    self.grid_size[i],
-                    self.grid_size[i],
-                    3,
-                    5 + self.num_classes,
-                ),
-                dtype=np.float32,
+                (1, _size, _size, 3, 5 + self.num_classes,), dtype=np.float32,
             )
-            for i in range(len(self.grid_size))
+            for _size in self.grid_size
         ]
-        for i in range(len(self.grid)):
-            ground_truth[i][..., 0:2] = self.grid[i]
+        for i, _grid in enumerate(self.grid):
+            ground_truth[i][..., 0:2] = _grid
 
         for bbox in bboxes:
             # [b_x, b_y, b_w, b_h, class_id]
