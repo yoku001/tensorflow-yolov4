@@ -84,7 +84,7 @@ class YOLOv4(BaseClass):
         if weights_type == "yolo":
             weights.load_weights(self.model, weights_path, tiny=self.tiny)
         elif weights_type == "tf":
-            self.model.load_weights(weights_path)
+            self.model.load_weights(weights_path, by_name=True)
 
         self._has_weights = True
 
