@@ -42,7 +42,7 @@ Ref: [https://www.tensorflow.org/lite/guide/python](https://www.tensorflow.org/l
 ## Objective
 
 - [x] Train and predict using TensorFlow 2 only
-- [x] Run yolov4 on Coral board(TPU).
+- [x] Run yolov4-tiny-relu on Coral board(TPU).
 - [ ] Update Docs
 - [ ] Optimize model and operations
 
