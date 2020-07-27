@@ -257,7 +257,7 @@ class YOLOv4(BaseClass):
             ),
         )
 
-    def fit(self, data_set, epochs, verbose=1, callbacks=None):
+    def fit(self, data_set, epochs, verbose=1, callbacks=None, initial_epoch=0):
         # validation_split=0.,
         # validation_data=None,
         # shuffle=True,
@@ -277,5 +277,6 @@ class YOLOv4(BaseClass):
             verbose=verbose,
             callbacks=callbacks,
             batch_size=self.batch_size // self.subdivision,
+            initial_epoch=initial_epoch,
             steps_per_epoch=self.subdivision,
         )
