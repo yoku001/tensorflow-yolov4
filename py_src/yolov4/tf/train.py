@@ -124,7 +124,6 @@ class YOLOv4Loss(Loss):
         conf_obj_loss = one_obj * (0.0 - backend.log(pred_conf + 1e-9))
         conf_noobj_loss = (
             one_noobj
-            * 0.5
             * tf.cast(max_iou < 0.5, dtype=tf.float32)
             * (0.0 - backend.log(1.0 - pred_conf + 1e-9))
         )
