@@ -202,11 +202,7 @@ class Dataset:
 
         @return image / 255, ground_truth
         """
-        image_path = dataset[0]
-        if not os.path.exists(image_path):
-            raise KeyError("{} does not exist".format(image_path))
-
-        image = cv2.imread(image_path)
+        image = cv2.imread(dataset[0])
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         if self.dataset_type == "converted_coco":
             height, width, _ = image.shape
@@ -228,6 +224,20 @@ class Dataset:
 
         return resized_image, ground_truth
 
+    def _next_data(self):
+        for _ in range(5):
+            _dataset = self.dataset[self.count]
+
+            self.count += 1
+            if self.count == len(self.dataset):
+                np.random.shuffle(self.dataset)
+                self.count = 0
+
+            if os.path.exists(_dataset[0]):
+                return _dataset
+
+        raise KeyError("Image search failed five times in a row")
+
     def __iter__(self):
         self.count = 0
         np.random.shuffle(self.dataset)
@@ -242,23 +252,14 @@ class Dataset:
             batch_x = []
             _batch_y = [[] for _ in range(len(self.grid_size))]
             for _ in range(self.batch_size):
-                x, y = self.preprocess_dataset(self.dataset[self.count])
-                self.count += 1
-                if self.count == len(self.dataset):
-                    np.random.shuffle(self.dataset)
-                    self.count = 0
-
+                x, y = self.preprocess_dataset(self._next_data())
                 batch_x.append(x)
                 for i, _y in enumerate(y):
                     _batch_y[i].append(_y)
             batch_x = np.concatenate(batch_x, axis=0)
             batch_y = [np.concatenate(b_y, axis=0) for b_y in _batch_y]
         else:
-            batch_x, batch_y = self.preprocess_dataset(self.dataset[self.count])
-            self.count += 1
-            if self.count == len(self.dataset):
-                np.random.shuffle(self.dataset)
-                self.count = 0
+            batch_x, batch_y = self.preprocess_dataset(self._next_data())
 
         return batch_x, batch_y
 
