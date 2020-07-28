@@ -125,10 +125,10 @@ yolo.inference("kite.jpg")
 ## Training
 
 ```python
-import tensorflow.keras import optimizers
-from yolov4.tf import YOLOv4
+from tensorflow.keras import callbacks, optimizers
+from yolov4.tf import SaveWeightsCallback, YOLOv4
 
-yolo = YOLOv4()
+yolo = YOLOv4(tiny=True)
 
 yolo.classes = "coco.names"
 yolo.input_size = 608
@@ -136,20 +136,47 @@ yolo.batch_size = 32
 yolo.subdivision = 16
 
 yolo.make_model()
-yolo.load_weights("yolov4.conv.137", weights_type="yolo")
+yolo.load_weights("yolov4-tiny.conv.29", weights_type="yolo")
 
-data_set = yolo.load_dataset("val2017.txt")
-# data_set = yolo.load_dataset(
-#     "/home/hhk7734/darknet/data/train.txt",
-#     dataset_type="yolo",
-# )
+train_data_set = yolo.load_dataset("train2017.txt")
+val_data_set = yolo.load_dataset("val2017.txt")
+# data_set = yolo.load_dataset("darknet/data/train.txt", dataset_type="yolo")
 
-optimizer = optimizers.Adam(learning_rate=1e-4)
+lr = 1e-4
+epochs = 80000
+
+optimizer = optimizers.Adam(learning_rate=lr)
 yolo.compile(optimizer=optimizer, loss_iou_type="ciou")
 
-yolo.fit(data_set, epochs=1500)
-yolo.save_weights("checkpoints")
-# yolo.save_weights("yolov4.weights", weights_type="yolo")
+
+def lr_scheduler(epoch):
+    if epoch < 1000:
+        return (epoch / 1000) * lr
+    elif epoch < int(epochs * 0.8):
+        return lr
+    elif epoch < int(epochs * 0.9):
+        return lr * 0.1
+    else:
+        return lr * 0.01
+
+
+yolo.fit(
+    train_data_set,
+    epochs=epochs,
+    callbacks=[
+        callbacks.LearningRateScheduler(lr_scheduler),
+        callbacks.TerminateOnNaN(),
+        callbacks.TensorBoard(
+            log_dir="/content/drive/My Drive/Hard_Soft/NN/logs",
+        ),
+        SaveWeightsCallback(
+            yolo=yolo, weights_type="yolo", epoch_per_save=1000
+        ),
+    ],
+    validation_data=val_data_set,
+    validation_steps=100,
+    validation_freq=100,
+)
 ```
 
 [Custom training on Colab jupyter notebook](./test/custom_training_on_colab.ipynb)
