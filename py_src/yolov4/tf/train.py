@@ -21,8 +21,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+from os import makedirs, path
+
 import tensorflow as tf
 from tensorflow.keras import backend, losses
+from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.losses import Loss
 
 
@@ -307,3 +310,42 @@ def bbox_ciou(bboxes1, bboxes2):
     ciou = diou - alpha * v
 
     return ciou
+
+
+class SaveWeightsCallback(Callback):
+    def __init__(
+        self,
+        yolo,
+        dir_path: str = "trained-weights",
+        weights_type: str = "tf",
+        epoch_per_save: int = 1000,
+    ):
+        super(SaveWeightsCallback, self).__init__()
+        self.yolo = yolo
+        self.weights_type = weights_type
+        self.epoch_per_save = epoch_per_save
+
+        makedirs(dir_path, exist_ok=True)
+
+        if self.yolo.tiny:
+            self.path_prefix = path.join(dir_path, "yolov4-tiny")
+        else:
+            self.path_prefix = path.join(dir_path, "yolov4")
+
+        if weights_type == "tf":
+            self.extension = "-checkpoint"
+        else:
+            self.extension = ".weights"
+
+    def on_train_end(self, logs=None):
+        self.yolo.save_weights(
+            "{}-final{}".format(self.path_prefix, self.extension),
+            weights_type=self.weights_type,
+        )
+
+    def on_epoch_end(self, epoch, logs=None):
+        if (epoch + 1) % self.epoch_per_save == 0:
+            self.yolo.save_weights(
+                "{}-{}{}".format(self.path_prefix, epoch + 1, self.extension),
+                weights_type=self.weights_type,
+            )

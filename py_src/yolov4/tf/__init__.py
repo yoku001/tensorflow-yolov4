@@ -32,6 +32,7 @@ import tensorflow as tf
 from tensorflow.keras import backend, layers, models, optimizers
 
 from . import dataset, train, weights
+from .train import SaveWeightsCallback
 from ..common.base_class import BaseClass
 from ..model import yolov4
 
