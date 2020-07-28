@@ -1,3 +1,13 @@
+tensorflow-yolov4 (0.20.0) unstable; urgency=medium
+
+  * tf: train: modify epsilon to 1e-9
+  * tf: train: remove weight for conf_noobj_loss
+  * tf: add arguments to fit()
+  * tf: dataset: fix problem of not finding images
+  * tf: add SaveWeightsCallback
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Wed, 29 Jul 2020 05:06:25 +0900
+
 tensorflow-yolov4 (0.19.0) unstable; urgency=medium
 
   * tf: weights: modify 'set' to 'load'
