@@ -183,7 +183,7 @@ def bbox_iou(bboxes1, bboxes2):
 
     union_area = bboxes1_area + bboxes2_area - inter_area
 
-    iou = inter_area / (union_area + 1e-9)
+    iou = inter_area / (union_area + 1e-8)
 
     return iou
 
@@ -226,7 +226,7 @@ def bbox_giou(bboxes1, bboxes2):
 
     union_area = bboxes1_area + bboxes2_area - inter_area
 
-    iou = inter_area / (union_area + 1e-9)
+    iou = inter_area / (union_area + 1e-8)
 
     enclose_left_up = tf.minimum(bboxes1_coor[..., :2], bboxes2_coor[..., :2])
     enclose_right_down = tf.maximum(
@@ -236,7 +236,7 @@ def bbox_giou(bboxes1, bboxes2):
     enclose_section = enclose_right_down - enclose_left_up
     enclose_area = enclose_section[..., 0] * enclose_section[..., 1]
 
-    giou = iou - (enclose_area - union_area) / (enclose_area + 1e-9)
+    giou = iou - (enclose_area - union_area) / (enclose_area + 1e-8)
 
     return giou
 
@@ -279,7 +279,7 @@ def bbox_ciou(bboxes1, bboxes2):
 
     union_area = bboxes1_area + bboxes2_area - inter_area
 
-    iou = inter_area / (union_area + 1e-9)
+    iou = inter_area / (union_area + 1e-8)
 
     enclose_left_up = tf.minimum(bboxes1_coor[..., :2], bboxes2_coor[..., :2])
     enclose_right_down = tf.maximum(
@@ -294,18 +294,18 @@ def bbox_ciou(bboxes1, bboxes2):
 
     rho_2 = center_diagonal[..., 0] ** 2 + center_diagonal[..., 1] ** 2
 
-    diou = iou - rho_2 / (c_2 + 1e-9)
+    diou = iou - rho_2 / (c_2 + 1e-8)
 
     v = (
         (
-            tf.math.atan(bboxes1[..., 2] / (bboxes1[..., 3] + 1e-9))
-            - tf.math.atan(bboxes2[..., 2] / (bboxes2[..., 3] + 1e-9))
+            tf.math.atan(bboxes1[..., 2] / (bboxes1[..., 3] + 1e-8))
+            - tf.math.atan(bboxes2[..., 2] / (bboxes2[..., 3] + 1e-8))
         )
         * 2
         / 3.1415926536
     ) ** 2
 
-    alpha = v / (1 - iou + v + 1e-9)
+    alpha = v / (1 - iou + v + 1e-8)
 
     ciou = diou - alpha * v
 
