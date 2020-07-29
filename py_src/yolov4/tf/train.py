@@ -32,7 +32,11 @@ from tensorflow.keras.losses import Loss
 class YOLOv4Loss(Loss):
     def __init__(self, batch_size, iou_type):
         super(YOLOv4Loss, self).__init__(name="YOLOv4Loss")
-        if iou_type == "ciou":
+        if iou_type == "iou":
+            self.bbox_xiou = bbox_iou
+        elif iou_type == "giou":
+            self.bbox_xiou = bbox_giou
+        elif iou_type == "ciou":
             self.bbox_xiou = bbox_ciou
 
         self.prob_cross_entropy = losses.BinaryCrossentropy(
