@@ -24,7 +24,7 @@ SOFTWARE.
 from os import makedirs, path
 
 import tensorflow as tf
-from tensorflow.keras import backend, losses
+from tensorflow.keras import backend
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.losses import Loss
 
@@ -38,10 +38,6 @@ class YOLOv4Loss(Loss):
             self.bbox_xiou = bbox_giou
         elif iou_type == "ciou":
             self.bbox_xiou = bbox_ciou
-
-        self.prob_cross_entropy = losses.BinaryCrossentropy(
-            reduction=losses.Reduction.NONE
-        )
 
         self.batch_size = batch_size
         self.while_cond = lambda i, iou: tf.less(i, self.batch_size)
@@ -136,9 +132,12 @@ class YOLOv4Loss(Loss):
         )
 
         # Probabilities Loss
-        prob_loss = (
-            one_obj
-            * self.prob_cross_entropy(pred_prob, truth_prob)[..., tf.newaxis]
+        prob_pos_loss = truth_prob * (0 - backend.log(pred_prob + 1e-9))
+        prob_neg_loss = (1 - truth_prob) * (
+            0 - backend.log(1 - pred_prob + 1e-9)
+        )
+        prob_loss = one_obj * tf.reduce_sum(
+            prob_pos_loss + prob_neg_loss, axis=-1, keepdims=True
         )
 
         sum_xiou_loss = tf.reduce_mean(tf.reduce_sum(xiou_loss, axis=(1, 2)))
