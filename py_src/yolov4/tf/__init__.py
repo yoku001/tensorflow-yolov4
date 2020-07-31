@@ -117,6 +117,11 @@ class YOLOv4(BaseClass):
         """
         converter = tf.lite.TFLiteConverter.from_keras_model(self.model)
 
+        _supported_ops = [
+            tf.lite.OpsSet.TFLITE_BUILTINS,
+            tf.lite.OpsSet.SELECT_TF_OPS,
+        ]
+
         def representative_dataset_gen():
             for _ in range(num_calibration_steps):
                 # pylint: disable=stop-iteration-return
@@ -133,15 +138,15 @@ class YOLOv4(BaseClass):
             converter.representative_dataset = representative_dataset_gen
         elif quantization == "full_int8":
             converter.representative_dataset = representative_dataset_gen
-            converter.target_spec.supported_ops = [
-                tf.lite.OpsSet.TFLITE_BUILTINS_INT8
-            ]
+            _supported_ops += [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
             converter.inference_input_type = tf.int8
             converter.inference_output_type = tf.int8
         elif quantization:
             raise ValueError(
                 "YOLOv4: {} is not a valid option".format(quantization)
             )
+
+        converter.target_spec.supported_ops = _supported_ops
 
         tflite_model = converter.convert()
         with tf.io.gfile.GFile(tflite_path, "wb") as fd:
