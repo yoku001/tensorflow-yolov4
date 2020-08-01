@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import os
+import random
+
 import cv2
 import numpy as np
 
@@ -236,6 +238,10 @@ class Dataset:
             self.count = 0
         _dataset = self.load_image_then_resize(_dataset)
 
+        if self.data_augmentation:
+            if random.random() < 0.3:
+                _dataset = cut_out(_dataset)
+
         return _dataset[0], self.bboxes_to_ground_truth(_dataset[1])
 
     def __iter__(self):
@@ -267,3 +273,34 @@ class Dataset:
 
     def __len__(self):
         return len(self.dataset)
+
+
+def cut_out(dataset):
+    """
+    @parma dataset: image(float), bboxes
+            bboxes = [image_path, [[x, y, w, h, class_id], ...]]
+    """
+    _size = dataset[0].shape[1]
+    for bbox in dataset[1]:
+        if random.random() < 0.5:
+            _pixel_bbox = [int(pos * _size) for pos in bbox[0:4]]
+            _x_min = _pixel_bbox[0] - (_pixel_bbox[2] // 2)
+            _y_min = _pixel_bbox[1] - (_pixel_bbox[3] // 2)
+            _cut_out_width = _pixel_bbox[2] // 4
+            _cut_out_height = _pixel_bbox[3] // 4
+            _x_offset = (
+                int((_pixel_bbox[2] - _cut_out_width) * random.random())
+                + _x_min
+            )
+            _y_offset = (
+                int((_pixel_bbox[3] - _cut_out_height) * random.random())
+                + _y_min
+            )
+            dataset[0][
+                :,
+                _y_offset : _y_offset + _cut_out_height,
+                _x_offset : _x_offset + _cut_out_width,
+                :,
+            ] = 0.5
+
+    return dataset
