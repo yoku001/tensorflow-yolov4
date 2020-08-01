@@ -240,9 +240,13 @@ class Dataset:
         return self.load_image_then_resize(_dataset)
 
     def _next_random_augmentation_data(self):
-        _dataset = self._next_data()
-        if random.random() < 0.3:
-            _dataset = cut_out(_dataset)
+        if random.random() < 0.2:
+            if random.random() < 0.5:
+                _dataset = cut_out(self._next_data())
+            else:
+                _dataset = mix_up(self._next_data(), self._next_data())
+        else:
+            _dataset = self._next_data()
 
         return _dataset
 
@@ -316,3 +320,10 @@ def cut_out(dataset):
             ] = 0.5
 
     return dataset
+
+
+def mix_up(dataset0, dataset1, alpha=0.2):
+    return (
+        (dataset0[0] * alpha + dataset1[0] * (1 - alpha)),
+        (np.concatenate((dataset0[1], dataset1[1]), axis=0)),
+    )
