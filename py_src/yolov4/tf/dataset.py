@@ -236,13 +236,15 @@ class Dataset:
         if self.count == len(self.dataset):
             np.random.shuffle(self.dataset)
             self.count = 0
-        _dataset = self.load_image_then_resize(_dataset)
 
-        if self.data_augmentation:
-            if random.random() < 0.3:
-                _dataset = cut_out(_dataset)
+        return self.load_image_then_resize(_dataset)
 
-        return _dataset[0], self.bboxes_to_ground_truth(_dataset[1])
+    def _next_random_augmentation_data(self):
+        _dataset = self._next_data()
+        if random.random() < 0.3:
+            _dataset = cut_out(_dataset)
+
+        return _dataset
 
     def __iter__(self):
         self.count = 0
@@ -258,14 +260,24 @@ class Dataset:
             batch_x = []
             _batch_y = [[] for _ in range(len(self.grid_size))]
             for _ in range(self.batch_size):
-                x, y = self._next_data()
+                if self.data_augmentation:
+                    _dataset = self._next_random_augmentation_data()
+                else:
+                    _dataset = self._next_data()
+                x = _dataset[0]
+                y = self.bboxes_to_ground_truth(_dataset[1])
                 batch_x.append(x)
                 for i, _y in enumerate(y):
                     _batch_y[i].append(_y)
             batch_x = np.concatenate(batch_x, axis=0)
             batch_y = [np.concatenate(b_y, axis=0) for b_y in _batch_y]
         else:
-            batch_x, batch_y = self._next_data()
+            if self.data_augmentation:
+                _dataset = self._next_random_augmentation_data()
+            else:
+                _dataset = self._next_data()
+            batch_x = _dataset[0]
+            batch_y = self.bboxes_to_ground_truth(_dataset[1])
 
         # batch_x == Dim(batch, input_size, input_size, channels)
         # batch_y[0] == Dim(batch, grid_size, grid_size, anchors, bboxes)
