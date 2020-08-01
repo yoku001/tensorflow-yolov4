@@ -43,6 +43,7 @@ Ref: [https://www.tensorflow.org/lite/guide/python](https://www.tensorflow.org/l
 
 - [x] Train and predict using TensorFlow 2 only
 - [x] Run yolov4-tiny-relu on Coral board(TPU).
+- [ ] Train tiny-relu with coco 2017 dataset
 - [ ] Update Docs
 - [ ] Optimize model and operations
 
@@ -139,11 +140,11 @@ yolo.make_model()
 yolo.load_weights("yolov4-tiny.conv.29", weights_type="yolo")
 
 train_data_set = yolo.load_dataset("train2017.txt")
-val_data_set = yolo.load_dataset("val2017.txt")
+val_data_set = yolo.load_dataset("val2017.txt", training=False)
 # data_set = yolo.load_dataset("darknet/data/train.txt", dataset_type="yolo")
 
 lr = 1e-4
-epochs = 80000
+epochs = 30000
 
 optimizer = optimizers.Adam(learning_rate=lr)
 yolo.compile(optimizer=optimizer, loss_iou_type="ciou")
