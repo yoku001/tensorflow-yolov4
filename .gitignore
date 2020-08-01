@@ -5,4 +5,5 @@ build
 checkpoints
 dist
 log
+venv
 yolov4.egg-info
