@@ -241,10 +241,13 @@ class Dataset:
 
     def _next_random_augmentation_data(self):
         if random.random() < 0.2:
-            if random.random() < 0.5:
+            _prob = random.random()
+            if _prob < 0.25:
                 _dataset = cut_out(self._next_data())
-            else:
+            elif _prob < 0.5:
                 _dataset = mix_up(self._next_data(), self._next_data())
+            else:
+                _dataset = mosaic(*[self._next_data() for _ in range(4)])
         else:
             _dataset = self._next_data()
 
@@ -327,3 +330,110 @@ def mix_up(dataset0, dataset1, alpha=0.2):
         (dataset0[0] * alpha + dataset1[0] * (1 - alpha)),
         (np.concatenate((dataset0[1], dataset1[1]), axis=0)),
     )
+
+
+def mosaic(dataset0, dataset1, dataset2, dataset3):
+    size = dataset0[0].shape[1]
+    image = np.empty((1, size, size, 3))
+    bboxes = []
+
+    partition_x = int((random.random() * 0.6 + 0.2) * size)
+    partition_y = int((random.random() * 0.6 + 0.2) * size)
+
+    x_offset = [0, partition_x, 0, partition_x]
+    y_offset = [0, 0, partition_y, partition_y]
+
+    left = [
+        (size - partition_x) // 2,
+        partition_x // 2,
+        (size - partition_x) // 2,
+        partition_x // 2,
+    ]
+    right = [
+        left[0] + partition_x,
+        left[1] + size - partition_x,
+        left[2] + partition_x,
+        left[3] + size - partition_x,
+    ]
+    top = [
+        (size - partition_y) // 2,
+        (size - partition_y) // 2,
+        partition_y // 2,
+        partition_y // 2,
+    ]
+    down = [
+        top[0] + partition_y,
+        top[1] + partition_y,
+        top[2] + size - partition_y,
+        top[3] + size - partition_y,
+    ]
+
+    image[:, :partition_y, :partition_x, :] = dataset0[0][
+        :, top[0] : down[0], left[0] : right[0], :,
+    ]
+    image[:, :partition_y, partition_x:, :] = dataset1[0][
+        :, top[1] : down[1], left[1] : right[1], :,
+    ]
+    image[:, partition_y:, :partition_x, :] = dataset2[0][
+        :, top[2] : down[2], left[2] : right[2], :,
+    ]
+    image[:, partition_y:, partition_x:, :] = dataset3[0][
+        :, top[3] : down[3], left[3] : right[3], :,
+    ]
+
+    for i, _bboxes in enumerate(
+        (dataset0[1], dataset1[1], dataset2[1], dataset3[1])
+    ):
+        for bbox in _bboxes:
+            pixel_bbox = bbox[0:4] * size
+            x_min = int(pixel_bbox[0] - pixel_bbox[2] // 2)
+            y_min = int(pixel_bbox[1] - pixel_bbox[3] // 2)
+            x_max = int(pixel_bbox[0] + pixel_bbox[2] // 2)
+            y_max = int(pixel_bbox[1] + pixel_bbox[3] // 2)
+
+            class_id = bbox[4]
+
+            if x_min > right[i]:
+                continue
+            if y_min > down[i]:
+                continue
+            if x_max < left[i]:
+                continue
+            if y_max < top[i]:
+                continue
+
+            if x_max > right[i]:
+                x_max = right[i]
+            if y_max > down[i]:
+                y_max = down[i]
+            if x_min < left[i]:
+                x_min = left[i]
+            if y_min < top[i]:
+                y_min = top[i]
+
+            x_min -= left[i]
+            x_max -= left[i]
+            y_min -= top[i]
+            y_max -= top[i]
+
+            if x_min + 3 > x_max:
+                continue
+
+            if y_min + 3 > y_max:
+                continue
+
+            bboxes.append(
+                np.array(
+                    [
+                        [
+                            ((x_min + x_max) / 2 + x_offset[i]) / size,
+                            ((y_min + y_max) / 2 + y_offset[i]) / size,
+                            (x_max - x_min) / size,
+                            (y_max - y_min) / size,
+                            class_id,
+                        ],
+                    ]
+                )
+            )
+
+    return image, np.concatenate(bboxes, axis=0)
