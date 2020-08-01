@@ -201,14 +201,14 @@ class Dataset:
 
         return ground_truth
 
-    def preprocess_dataset(self, dataset):
+    def load_image_then_resize(self, dataset, output_size=None):
         """
         @param dataset:
             yolo: [image_path, [[x, y, w, h, class_id], ...]]
             converted_coco: unit=> pixel
                 [image_path, [[x, y, w, h, class_id], ...]]
 
-        @return image / 255, ground_truth
+        @return image / 255, bboxes
         """
         image = cv2.imread(dataset[0])
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -218,24 +218,25 @@ class Dataset:
                 [width, height, width, height, 1]
             )
 
+        if output_size is None:
+            output_size = self.input_size
+
         resized_image, resized_bboxes = media.resize_image(
-            image, self.input_size, dataset[1]
+            image, output_size, dataset[1]
         )
-
         resized_image = np.expand_dims(resized_image / 255.0, axis=0)
-        ground_truth = self.bboxes_to_ground_truth(resized_bboxes)
 
-        return resized_image, ground_truth
+        return resized_image, resized_bboxes
 
     def _next_data(self):
         _dataset = self.dataset[self.count]
-
         self.count += 1
         if self.count == len(self.dataset):
             np.random.shuffle(self.dataset)
             self.count = 0
+        _dataset = self.load_image_then_resize(_dataset)
 
-        return self.preprocess_dataset(_dataset)
+        return _dataset[0], self.bboxes_to_ground_truth(_dataset[1])
 
     def __iter__(self):
         self.count = 0
