@@ -92,6 +92,8 @@ class Dataset:
                     # line: "<image_path> xmin,ymin,xmax,ymax,class_id ..."
                     bboxes = line.strip().split()
                     image_path = bboxes[0]
+                    if not os.path.exists(image_path):
+                        continue
                     xywhc_s = np.zeros((len(bboxes) - 1, 5))
                     for i, bbox in enumerate(bboxes[1:]):
                         # bbox = "xmin,ymin,xmax,ymax,class_id"
@@ -109,6 +111,8 @@ class Dataset:
                 for line in txt:
                     # line: "<image_path>"
                     image_path = line.strip()
+                    if not os.path.exists(image_path):
+                        continue
                     root, _ = os.path.splitext(image_path)
                     with open(root + ".txt") as fd2:
                         bboxes = fd2.readlines()
@@ -122,6 +126,10 @@ class Dataset:
                                 bbox[0],
                             )
                         _dataset.append([image_path, xywhc_s])
+
+        if len(_dataset) == 0:
+            raise FileNotFoundError("Failed to find images")
+
         return _dataset
 
     def bboxes_to_ground_truth(self, bboxes):
@@ -214,29 +222,20 @@ class Dataset:
             image, self.input_size, dataset[1]
         )
 
-        if self.data_augmentation:
-            # TODO
-            # BoF functions
-            pass
-
         resized_image = np.expand_dims(resized_image / 255.0, axis=0)
         ground_truth = self.bboxes_to_ground_truth(resized_bboxes)
 
         return resized_image, ground_truth
 
     def _next_data(self):
-        for _ in range(5):
-            _dataset = self.dataset[self.count]
+        _dataset = self.dataset[self.count]
 
-            self.count += 1
-            if self.count == len(self.dataset):
-                np.random.shuffle(self.dataset)
-                self.count = 0
+        self.count += 1
+        if self.count == len(self.dataset):
+            np.random.shuffle(self.dataset)
+            self.count = 0
 
-            if os.path.exists(_dataset[0]):
-                return _dataset
-
-        raise KeyError("Image search failed five times in a row")
+        return self.preprocess_dataset(_dataset)
 
     def __iter__(self):
         self.count = 0
@@ -252,15 +251,17 @@ class Dataset:
             batch_x = []
             _batch_y = [[] for _ in range(len(self.grid_size))]
             for _ in range(self.batch_size):
-                x, y = self.preprocess_dataset(self._next_data())
+                x, y = self._next_data()
                 batch_x.append(x)
                 for i, _y in enumerate(y):
                     _batch_y[i].append(_y)
             batch_x = np.concatenate(batch_x, axis=0)
             batch_y = [np.concatenate(b_y, axis=0) for b_y in _batch_y]
         else:
-            batch_x, batch_y = self.preprocess_dataset(self._next_data())
+            batch_x, batch_y = self._next_data()
 
+        # batch_x == Dim(batch, input_size, input_size, channels)
+        # batch_y[0] == Dim(batch, grid_size, grid_size, anchors, bboxes)
         return batch_x, batch_y
 
     def __len__(self):
