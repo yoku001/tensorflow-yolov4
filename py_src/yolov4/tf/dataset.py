@@ -436,4 +436,7 @@ def mosaic(dataset0, dataset1, dataset2, dataset3):
                 )
             )
 
+    if len(bboxes) == 0:
+        return dataset0
+
     return image, np.concatenate(bboxes, axis=0)
