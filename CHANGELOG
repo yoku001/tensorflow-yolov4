@@ -1,3 +1,15 @@
+tensorflow-yolov4 (0.22.0) unstable; urgency=medium
+
+  * tf: add TFLITE_BUILTINS, SELECT_TF_OPS to default supported_ops
+  * tf: dataset: modify to check if image exists when creating a dataset
+  * tf: dataset: remove preprocess_dataset
+  * tf: dataset: add cut_out
+  * tf: dataset: add _next_random_augmentation_data()
+  * tf: dataset: add mix_up
+  * tf: dataset: implement mosaic
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Sun, 02 Aug 2020 17:22:43 +0900
+
 tensorflow-yolov4 (0.21.0) unstable; urgency=medium
 
   * tf: train: set epsilon used for division to 1e-8
