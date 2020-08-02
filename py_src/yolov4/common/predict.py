@@ -151,17 +151,18 @@ def candidates_to_pred_bboxes(
     DIoU_threshold: float = 0.3,
 ):
     """
-    @param candidates: Dim(-1, (x, y, w, h, score, classes))
+    @param candidates: Dim(-1, (x, y, w, h, obj_score, probabilities))
 
-    @return Dim(-1, (x, y, w, h, class_id, probability))
+    @return Dim(-1, (x, y, w, h, class_id, class_probability))
     """
     # Remove low socre candidates
     # This step should be the first !!
     class_ids = np.argmax(candidates[:, 5:], axis=-1)
-    scores = (
+    # class_prob = obj_score * max_probability
+    class_prob = (
         candidates[:, 4] * candidates[np.arange(len(candidates)), class_ids + 5]
     )
-    candidates = candidates[scores > score_threshold, :]
+    candidates = candidates[class_prob > score_threshold, :]
 
     # Remove out of range candidates
     half = candidates[:, 2:4] * 0.5
@@ -187,12 +188,17 @@ def candidates_to_pred_bboxes(
     ]
 
     class_ids = np.argmax(candidates[:, 5:], axis=-1)
-    scores = (
+    class_prob = (
         candidates[:, 4] * candidates[np.arange(len(candidates)), class_ids + 5]
     )
 
+    # x, y, w, h, class_id, class_probability
     candidates = np.concatenate(
-        [candidates[:, :4], class_ids[:, np.newaxis], scores[:, np.newaxis],],
+        [
+            candidates[:, :4],
+            class_ids[:, np.newaxis],
+            class_prob[:, np.newaxis],
+        ],
         axis=-1,
     )
 
