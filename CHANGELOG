@@ -1,3 +1,12 @@
+tensorflow-yolov4 (0.23.0) unstable; urgency=medium
+
+  * tf: dataset: add error handling when bboxes are empty
+  * common: media: replace space of class name to underbar
+  * tf: implement save_dataset_for_mAP()
+  * tf: dataset: add error handling when image is empty
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Mon, 03 Aug 2020 20:49:51 +0900
+
 tensorflow-yolov4 (0.22.0) unstable; urgency=medium
 
   * tf: add TFLITE_BUILTINS, SELECT_TF_OPS to default supported_ops
