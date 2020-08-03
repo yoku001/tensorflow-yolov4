@@ -212,11 +212,13 @@ class Dataset:
 
         @return image / 255, bboxes
         """
-        image = cv2.imread(dataset[0])
-        if not image:
+        # pylint: disable=bare-except
+        try:
+            image = cv2.imread(dataset[0])
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        except:
             return None
 
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         if self.dataset_type == "converted_coco":
             height, width, _ = image.shape
             dataset[1] = dataset[1] / np.array(
@@ -242,7 +244,7 @@ class Dataset:
                 self.count = 0
 
             ret = self.load_image_then_resize(_dataset)
-            if ret:
+            if ret is not None:
                 return ret
 
         raise FileNotFoundError("Failed to find images")
