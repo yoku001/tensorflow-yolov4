@@ -213,6 +213,9 @@ class Dataset:
         @return image / 255, bboxes
         """
         image = cv2.imread(dataset[0])
+        if not image:
+            return None
+
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         if self.dataset_type == "converted_coco":
             height, width, _ = image.shape
@@ -231,13 +234,18 @@ class Dataset:
         return resized_image, resized_bboxes
 
     def _next_data(self):
-        _dataset = self.dataset[self.count]
-        self.count += 1
-        if self.count == len(self.dataset):
-            np.random.shuffle(self.dataset)
-            self.count = 0
+        for _ in range(5):
+            _dataset = self.dataset[self.count]
+            self.count += 1
+            if self.count == len(self.dataset):
+                np.random.shuffle(self.dataset)
+                self.count = 0
 
-        return self.load_image_then_resize(_dataset)
+            ret = self.load_image_then_resize(_dataset)
+            if ret:
+                return ret
+
+        raise FileNotFoundError("Failed to find images")
 
     def _next_random_augmentation_data(self):
         if random.random() < 0.2:
