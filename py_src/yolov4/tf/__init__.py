@@ -22,7 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 from datetime import datetime
-from os import path
+from os import makedirs, path
+import shutil
 import time
 from typing import Union
 
@@ -294,3 +295,80 @@ class YOLOv4(BaseClass):
             workers=1,
             use_multiprocessing=False,
         )
+
+    def save_dataset_for_mAP(self, mAP_path, data_set, num_sample=100):
+        """
+        gt: name left top right bottom
+        dr: name confidence left top right bottom
+        """
+        input_path = path.join(mAP_path, "input")
+
+        if path.exists(input_path):
+            shutil.rmtree(input_path)
+        makedirs(input_path)
+
+        gt_dir_path = path.join(input_path, "ground-truth")
+        dr_dir_path = path.join(input_path, "detection-results")
+        img_dir_path = path.join(input_path, "images-optional")
+        makedirs(gt_dir_path)
+        makedirs(dr_dir_path)
+        makedirs(img_dir_path)
+
+        max_dataset_size = len(data_set)
+
+        for i in range(num_sample):
+            # image_path, [[x, y, w, h, class_id], ...]
+            _dataset = data_set.dataset[i % max_dataset_size]
+
+            # images-optional
+            image_path = path.join(img_dir_path, "image_{}.jpg".format(i))
+            shutil.copy(_dataset[0], image_path)
+
+            image = cv2.imread(_dataset[0])
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            height, width, _ = image.shape
+
+            if data_set.dataset_type == "yolo":
+                _dataset[1] = _dataset[1] * np.array(
+                    [width, height, width, height, 1]
+                )
+
+            # ground-truth
+            with open(
+                path.join(gt_dir_path, "image_{}.txt".format(i)), "w",
+            ) as fd:
+                for xywhc in _dataset[1]:
+                    # name left top right bottom
+                    class_name = self.classes[int(xywhc[4])]
+                    left = int(xywhc[0] - xywhc[2] / 2)
+                    top = int(xywhc[1] - xywhc[3] / 2)
+                    right = int(xywhc[0] + xywhc[2] / 2)
+                    bottom = int(xywhc[1] + xywhc[3] / 2)
+                    fd.write(
+                        "{} {} {} {} {}\n".format(
+                            class_name, left, top, right, bottom
+                        )
+                    )
+
+            pred_bboxes = self.predict(image)
+            pred_bboxes = pred_bboxes * np.array(
+                [width, height, width, height, 1, 1]
+            )
+
+            # detection-results
+            with open(
+                path.join(dr_dir_path, "image_{}.txt".format(i)), "w",
+            ) as fd:
+                for xywhcp in pred_bboxes:
+                    # name confidence left top right bottom
+                    class_name = self.classes[int(xywhcp[4])]
+                    probability = xywhcp[5]
+                    left = int(xywhcp[0] - xywhcp[2] / 2)
+                    top = int(xywhcp[1] - xywhcp[3] / 2)
+                    right = int(xywhcp[0] + xywhcp[2] / 2)
+                    bottom = int(xywhcp[1] + xywhcp[3] / 2)
+                    fd.write(
+                        "{} {} {} {} {} {}\n".format(
+                            class_name, probability, left, top, right, bottom
+                        )
+                    )
