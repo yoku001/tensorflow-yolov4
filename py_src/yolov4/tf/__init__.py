@@ -296,7 +296,7 @@ class YOLOv4(BaseClass):
             use_multiprocessing=False,
         )
 
-    def save_dataset_for_mAP(self, mAP_path, data_set, num_sample=100):
+    def save_dataset_for_mAP(self, mAP_path, data_set, num_sample=1000):
         """
         gt: name left top right bottom
         dr: name confidence left top right bottom
