@@ -1,3 +1,10 @@
+tensorflow-yolov4 (0.24.0) unstable; urgency=medium
+
+  * tf: set default num of sample for mAP to 1000
+  * tf: fix error handling when image is empty
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Tue, 04 Aug 2020 12:40:25 +0900
+
 tensorflow-yolov4 (0.23.0) unstable; urgency=medium
 
   * tf: dataset: add error handling when bboxes are empty
