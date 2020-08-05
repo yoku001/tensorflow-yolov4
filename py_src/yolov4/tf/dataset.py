@@ -42,6 +42,7 @@ class Dataset:
         dataset_type: str = "converted_coco",
         data_augmentation: bool = True,
         input_size: int = 416,
+        label_smoothing: float = 0.1,
         num_classes: int = None,
         strides: np.ndarray = None,
         xyscales: np.ndarray = None,
@@ -53,6 +54,7 @@ class Dataset:
         self.data_augmentation = data_augmentation
         self.grid_size = input_size // strides
         self.input_size = input_size
+        self.label_smoothing = label_smoothing
         self.num_classes = num_classes
         self.xysclaes = xyscales
 
@@ -162,8 +164,9 @@ class Dataset:
             uniform_distribution = np.full(
                 self.num_classes, 1.0 / self.num_classes, dtype=np.float32
             )
-            delta = 0.01
-            smooth_onehot = (1 - delta) * onehot + delta * uniform_distribution
+            smooth_onehot = (
+                1 - self.label_smoothing
+            ) * onehot + self.label_smoothing * uniform_distribution
 
             ious = []
             exist_positive = False
