@@ -74,7 +74,7 @@ class YOLOv4Loss(Loss):
         num_obj = tf.reduce_sum(one_obj, axis=[1, 2])
         one_noobj = 1.0 - one_obj
         # Dim(batch, grid * grid * 3, 1)
-        one_obj_mask = one_obj > 0.9
+        one_obj_mask = one_obj > 0.5
 
         zero = tf.zeros((1, grid_size * grid_size * 3, 1), dtype=tf.float32)
 
