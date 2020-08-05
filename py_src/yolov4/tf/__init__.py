@@ -237,7 +237,11 @@ class YOLOv4(BaseClass):
     ############
 
     def load_dataset(
-        self, dataset_path, dataset_type="converted_coco", training=True
+        self,
+        dataset_path,
+        dataset_type="converted_coco",
+        label_smoothing=0.1,
+        training=True,
     ):
         return dataset.Dataset(
             anchors=self.anchors,
@@ -246,6 +250,7 @@ class YOLOv4(BaseClass):
             dataset_type=dataset_type,
             data_augmentation=training,
             input_size=self.input_size,
+            label_smoothing=label_smoothing,
             num_classes=len(self.classes),
             strides=self.strides,
             xyscales=self.xyscales,
