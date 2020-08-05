@@ -1,3 +1,11 @@
+tensorflow-yolov4 (1.0.0) unstable; urgency=medium
+
+  * tf: dataset: add `label smooting` argument
+  * tf: add label_smooting argument to load_dataset()
+  * tf: train: set truth_conf threshold to 0.5 because of label smoothing
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Wed, 05 Aug 2020 13:05:02 +0900
+
 tensorflow-yolov4 (0.24.0) unstable; urgency=medium
 
   * tf: set default num of sample for mAP to 1000
