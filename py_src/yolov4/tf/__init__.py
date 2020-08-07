@@ -46,7 +46,6 @@ class YOLOv4(BaseClass):
         super(YOLOv4, self).__init__(tiny=tiny, tpu=tpu)
 
         self.batch_size = 32
-        self.subdivision = 16
         self._has_weights = False
         self.input_size = 608
         self.model = None
@@ -250,7 +249,7 @@ class YOLOv4(BaseClass):
     ):
         return dataset.Dataset(
             anchors=self.anchors,
-            batch_size=self.batch_size // self.subdivision,
+            batch_size=self.batch_size,
             dataset_path=dataset_path,
             dataset_type=dataset_type,
             data_augmentation=training,
@@ -269,8 +268,7 @@ class YOLOv4(BaseClass):
         self.model.compile(
             optimizer=optimizer,
             loss=train.YOLOv4Loss(
-                batch_size=self.batch_size // self.subdivision,
-                iou_type=loss_iou_type,
+                batch_size=self.batch_size, iou_type=loss_iou_type,
             ),
         )
 
@@ -278,16 +276,17 @@ class YOLOv4(BaseClass):
         self,
         data_set,
         epochs,
-        verbose=1,
+        verbose=2,
         callbacks=None,
         validation_data=None,
         initial_epoch=0,
+        steps_per_epoch=None,
         validation_steps=None,
         validation_freq=1,
     ):
         self.model.fit(
             data_set,
-            batch_size=self.batch_size // self.subdivision,
+            batch_size=self.batch_size,
             epochs=epochs,
             verbose=verbose,
             callbacks=callbacks,
@@ -297,7 +296,7 @@ class YOLOv4(BaseClass):
             class_weight=None,
             sample_weight=None,
             initial_epoch=initial_epoch,
-            steps_per_epoch=self.subdivision,
+            steps_per_epoch=steps_per_epoch,
             validation_steps=validation_steps,
             validation_batch_size=None,
             validation_freq=validation_freq,
