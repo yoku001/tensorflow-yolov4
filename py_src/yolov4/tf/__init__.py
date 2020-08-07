@@ -52,7 +52,10 @@ class YOLOv4(BaseClass):
         self.model = None
 
     def make_model(
-        self, activation0: str = "mish", activation1: str = "leaky",
+        self,
+        activation0: str = "mish",
+        activation1: str = "leaky",
+        kernel_regularizer=tf.keras.regularizers.l2(0.0005),
     ):
         # pylint: disable=missing-function-docstring
         self._has_weights = False
@@ -65,6 +68,7 @@ class YOLOv4(BaseClass):
                 num_classes=len(self.classes),
                 xyscales=self.xyscales,
                 activation=activation1,
+                kernel_regularizer=kernel_regularizer,
                 tpu=self.tpu,
             )
         else:
@@ -74,6 +78,7 @@ class YOLOv4(BaseClass):
                 xyscales=self.xyscales,
                 activation0=activation0,
                 activation1=activation1,
+                kernel_regularizer=kernel_regularizer,
             )
         self.model(inputs)
 

@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import tensorflow as tf
 from tensorflow.keras import Model
 
 from .backbone import CSPDarknet53, CSPDarknet53Tiny
@@ -42,12 +43,19 @@ class YOLOv4(Model):
         xyscales,
         activation0: str = "mish",
         activation1: str = "leaky",
+        kernel_regularizer=None,
     ):
         super(YOLOv4, self).__init__(name="YOLOv4")
         self.csp_darknet53 = CSPDarknet53(
-            activation0=activation0, activation1=activation1
+            activation0=activation0,
+            activation1=activation1,
+            kernel_regularizer=kernel_regularizer,
         )
-        self.panet = PANet(num_classes=num_classes, activation=activation1)
+        self.panet = PANet(
+            num_classes=num_classes,
+            activation=activation1,
+            kernel_regularizer=kernel_regularizer,
+        )
         self.yolov3_head = YOLOv3Head(
             anchors=anchors, num_classes=num_classes, xysclaes=xyscales
         )
@@ -99,12 +107,17 @@ class YOLOv4Tiny(Model):
         num_classes: int,
         xyscales,
         activation: str = "leaky",
+        kernel_regularizer=None,
         tpu: bool = False,
     ):
         super(YOLOv4Tiny, self).__init__(name="YOLOv4Tiny")
-        self.csp_darknet53_tiny = CSPDarknet53Tiny(activation=activation)
+        self.csp_darknet53_tiny = CSPDarknet53Tiny(
+            activation=activation, kernel_regularizer=kernel_regularizer,
+        )
         self.panet_tiny = PANetTiny(
-            num_classes=num_classes, activation=activation
+            num_classes=num_classes,
+            activation=activation,
+            kernel_regularizer=kernel_regularizer,
         )
         self.yolov3_head_tiny = YOLOv3HeadTiny(
             anchors=anchors, num_classes=num_classes, xysclaes=xyscales, tpu=tpu

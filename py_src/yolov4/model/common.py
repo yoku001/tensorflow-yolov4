@@ -39,8 +39,9 @@ class YOLOConv2D(Layer):
         self,
         filters: int,
         kernel_size: Union[int, tuple],
-        strides: Union[int, tuple] = 1,
         activation: str = "mish",
+        kernel_regularizer=tf.keras.regularizers.l2(0.0005),
+        strides: Union[int, tuple] = 1,
         **kwargs
     ):
         super(YOLOConv2D, self).__init__(**kwargs)
@@ -68,7 +69,7 @@ class YOLOConv2D(Layer):
                 padding="same" if self.strides[0] == 1 else "valid",
                 strides=self.strides,
                 use_bias=not self.activation,
-                kernel_regularizer=tf.keras.regularizers.l2(0.0005),
+                kernel_regularizer=kernel_regularizer,
                 kernel_initializer=tf.random_normal_initializer(stddev=0.01),
                 bias_initializer=tf.constant_initializer(0.0),
             )
