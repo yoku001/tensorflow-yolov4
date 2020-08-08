@@ -98,15 +98,19 @@ class Dataset:
                     image_path = bboxes[0]
                     if not os.path.exists(image_path):
                         continue
+
+                    image = cv2.imread(image_path)
+                    height, width, _ = image.shape
+
                     xywhc_s = np.zeros((len(bboxes) - 1, 5))
                     for i, bbox in enumerate(bboxes[1:]):
                         # bbox = "xmin,ymin,xmax,ymax,class_id"
                         bbox = list(map(int, bbox.split(",")))
                         xywhc_s[i, :] = (
-                            (bbox[0] + bbox[2]) / 2,
-                            (bbox[1] + bbox[3]) / 2,
-                            bbox[2] - bbox[0],
-                            bbox[3] - bbox[1],
+                            (bbox[0] + bbox[2]) / 2 / width,
+                            (bbox[1] + bbox[3]) / 2 / height,
+                            (bbox[2] - bbox[0]) / width,
+                            (bbox[3] - bbox[1]) / height,
                             bbox[4],
                         )
                     _dataset.append([image_path, xywhc_s])
@@ -221,12 +225,6 @@ class Dataset:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         except:
             return None
-
-        if self.dataset_type == "converted_coco":
-            height, width, _ = image.shape
-            dataset[1] = dataset[1] / np.array(
-                [width, height, width, height, 1]
-            )
 
         if output_size is None:
             output_size = self.input_size
