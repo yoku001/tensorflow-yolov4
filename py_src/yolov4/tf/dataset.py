@@ -78,7 +78,8 @@ class Dataset:
         self.dataset = self.load_dataset()
 
         self.count = 0
-        np.random.shuffle(self.dataset)
+        if self.data_augmentation:
+            np.random.shuffle(self.dataset)
 
     def load_dataset(self):
         """
@@ -241,7 +242,8 @@ class Dataset:
             _dataset = self.dataset[self.count]
             self.count += 1
             if self.count == len(self.dataset):
-                np.random.shuffle(self.dataset)
+                if self.data_augmentation:
+                    np.random.shuffle(self.dataset)
                 self.count = 0
 
             ret = self.load_image_then_resize(_dataset)
@@ -266,7 +268,8 @@ class Dataset:
 
     def __iter__(self):
         self.count = 0
-        np.random.shuffle(self.dataset)
+        if self.data_augmentation:
+            np.random.shuffle(self.dataset)
         return self
 
     def __next__(self):
