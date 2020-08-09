@@ -82,7 +82,7 @@ class YOLOv4Loss(Loss):
         xiou = self.bbox_xiou(truth_xywh, pred_xywh)
         xiou_scale = 2.0 - truth_xywh[..., 2:3] * truth_xywh[..., 3:4]
         xiou_loss = one_obj * xiou_scale * (1.0 - xiou[..., tf.newaxis])
-        xiou_loss = tf.reduce_mean(tf.reduce_sum(xiou_loss, axis=(1, 2)))
+        xiou_loss = 3 * tf.reduce_mean(tf.reduce_sum(xiou_loss, axis=(1, 2)))
 
         # Confidence Loss
         i0 = tf.constant(0)
