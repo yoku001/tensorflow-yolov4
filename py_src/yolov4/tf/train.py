@@ -26,7 +26,7 @@ from os import makedirs, path
 import tensorflow as tf
 from tensorflow.keras import backend
 from tensorflow.keras.callbacks import Callback
-from tensorflow.keras.losses import Loss
+from tensorflow.keras.losses import BinaryCrossentropy, Loss, Reduction
 
 
 class YOLOv4Loss(Loss):
@@ -41,6 +41,10 @@ class YOLOv4Loss(Loss):
 
         self.batch_size = batch_size
         self.while_cond = lambda i, iou: tf.less(i, self.batch_size)
+
+        self.prob_binaryCrossentropy = BinaryCrossentropy(
+            reduction=Reduction.NONE
+        )
 
     def call(self, y_true, y_pred):
         """
@@ -65,6 +69,8 @@ class YOLOv4Loss(Loss):
         truth_xywh = y_true[..., 0:4]
         truth_conf = y_true[..., 4:5]
         truth_prob = y_true[..., 5:]
+
+        num_classes = truth_prob.shape[-1]
 
         pred_xywh = y_pred[..., 0:4]
         pred_conf = y_pred[..., 4:5]
@@ -136,15 +142,12 @@ class YOLOv4Loss(Loss):
         )
 
         # Probabilities Loss
-        prob_pos_loss = truth_prob * (0 - backend.log(pred_prob + 1e-9))
-        prob_neg_loss = (1 - truth_prob) * (
-            0 - backend.log(1 - pred_prob + 1e-9)
-        )
-        prob_loss = one_obj * tf.reduce_sum(
-            prob_pos_loss + prob_neg_loss, axis=-1, keepdims=True
-        )
+        prob_loss = self.prob_binaryCrossentropy(truth_prob, pred_prob)
+        prob_loss = one_obj * prob_loss[..., tf.newaxis]
 
-        prob_loss = tf.reduce_mean(tf.reduce_sum(prob_loss, axis=(1, 2)))
+        prob_loss = tf.reduce_mean(
+            tf.reduce_sum(prob_loss, axis=(1, 2)) * num_classes
+        )
 
         total_loss = xiou_loss + conf_loss + prob_loss
 
