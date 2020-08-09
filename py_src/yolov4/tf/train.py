@@ -30,8 +30,9 @@ from tensorflow.keras.losses import BinaryCrossentropy, Loss, Reduction
 
 
 class YOLOv4Loss(Loss):
-    def __init__(self, batch_size, iou_type):
+    def __init__(self, batch_size, iou_type, verbose=0):
         super(YOLOv4Loss, self).__init__(name="YOLOv4Loss")
+        self.batch_size = batch_size
         if iou_type == "iou":
             self.bbox_xiou = bbox_iou
         elif iou_type == "giou":
@@ -39,7 +40,8 @@ class YOLOv4Loss(Loss):
         elif iou_type == "ciou":
             self.bbox_xiou = bbox_ciou
 
-        self.batch_size = batch_size
+        self.verbose = verbose
+
         self.while_cond = lambda i, iou: tf.less(i, self.batch_size)
 
         self.prob_binaryCrossentropy = BinaryCrossentropy(
@@ -144,12 +146,25 @@ class YOLOv4Loss(Loss):
         # Probabilities Loss
         prob_loss = self.prob_binaryCrossentropy(truth_prob, pred_prob)
         prob_loss = one_obj * prob_loss[..., tf.newaxis]
-
         prob_loss = tf.reduce_mean(
             tf.reduce_sum(prob_loss, axis=(1, 2)) * num_classes
         )
 
         total_loss = xiou_loss + conf_loss + prob_loss
+
+        if self.verbose != 0:
+            tf.print(
+                "grid:",
+                grid_size,
+                "iou_loss:",
+                xiou_loss,
+                "conf_loss:",
+                conf_loss,
+                "prob_loss:",
+                prob_loss,
+                "total_loss",
+                total_loss,
+            )
 
         return total_loss
 
