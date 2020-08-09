@@ -82,6 +82,7 @@ class YOLOv4Loss(Loss):
         xiou = self.bbox_xiou(truth_xywh, pred_xywh)
         xiou_scale = 2.0 - truth_xywh[..., 2:3] * truth_xywh[..., 3:4]
         xiou_loss = one_obj * xiou_scale * (1.0 - xiou[..., tf.newaxis])
+        xiou_loss = tf.reduce_mean(tf.reduce_sum(xiou_loss, axis=(1, 2)))
 
         # Confidence Loss
         i0 = tf.constant(0)
@@ -130,6 +131,9 @@ class YOLOv4Loss(Loss):
             * tf.cast(max_iou < 0.5, dtype=tf.float32)
             * (0.0 - backend.log(1.0 - pred_conf + 1e-9))
         )
+        conf_loss = tf.reduce_mean(
+            tf.reduce_sum(conf_obj_loss + conf_noobj_loss, axis=(1, 2))
+        )
 
         # Probabilities Loss
         prob_pos_loss = truth_prob * (0 - backend.log(pred_prob + 1e-9))
@@ -140,13 +144,11 @@ class YOLOv4Loss(Loss):
             prob_pos_loss + prob_neg_loss, axis=-1, keepdims=True
         )
 
-        sum_xiou_loss = tf.reduce_mean(tf.reduce_sum(xiou_loss, axis=(1, 2)))
-        sum_conf_loss = tf.reduce_mean(
-            tf.reduce_sum(conf_obj_loss + conf_noobj_loss, axis=(1, 2))
-        )
-        sum_prob_loss = tf.reduce_mean(tf.reduce_sum(prob_loss, axis=(1, 2)))
+        prob_loss = tf.reduce_mean(tf.reduce_sum(prob_loss, axis=(1, 2)))
 
-        return sum_xiou_loss + sum_conf_loss + sum_prob_loss
+        total_loss = xiou_loss + conf_loss + prob_loss
+
+        return total_loss
 
 
 def bbox_iou(bboxes1, bboxes2):
