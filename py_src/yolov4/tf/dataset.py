@@ -23,7 +23,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-import os
+from os import path
 import random
 
 import cv2
@@ -44,6 +44,7 @@ class Dataset:
         input_size: int = 416,
         label_smoothing: float = 0.1,
         num_classes: int = None,
+        image_path_prefix: str = None,
         strides: np.ndarray = None,
         xyscales: np.ndarray = None,
     ):
@@ -55,6 +56,7 @@ class Dataset:
         self.grid_size = input_size // strides
         self.input_size = input_size
         self.label_smoothing = label_smoothing
+        self.image_path_prefix = image_path_prefix
         self.num_classes = num_classes
         self.xysclaes = xyscales
 
@@ -83,10 +85,7 @@ class Dataset:
 
     def load_dataset(self):
         """
-        @return
-            yolo: [[image_path, [[x, y, w, h, class_id], ...]], ...]
-            converted_coco: unit=> pixel
-                [[image_path, [[x, y, w, h, class_id], ...]], ...]
+        @return [[image_path, [[x, y, w, h, class_id], ...]], ...]
         """
         _dataset = []
 
@@ -94,25 +93,20 @@ class Dataset:
             txt = fd.readlines()
             if self.dataset_type == "converted_coco":
                 for line in txt:
-                    # line: "<image_path> xmin,ymin,xmax,ymax,class_id ..."
+                    # line: "<image_path> class_id, x, y, w, h ..."
                     bboxes = line.strip().split()
                     image_path = bboxes[0]
-                    if not os.path.exists(image_path):
-                        continue
-
-                    image = cv2.imread(image_path)
-                    height, width, _ = image.shape
-
+                    if self.image_path_prefix:
+                        image_path = path.join(
+                            self.image_path_prefix, image_path
+                        )
                     xywhc_s = np.zeros((len(bboxes) - 1, 5))
                     for i, bbox in enumerate(bboxes[1:]):
-                        # bbox = "xmin,ymin,xmax,ymax,class_id"
-                        bbox = list(map(int, bbox.split(",")))
+                        # bbox = class_id,x,y,w,h
+                        bbox = list(map(float, bbox.split(",")))
                         xywhc_s[i, :] = (
-                            (bbox[0] + bbox[2]) / 2 / width,
-                            (bbox[1] + bbox[3]) / 2 / height,
-                            (bbox[2] - bbox[0]) / width,
-                            (bbox[3] - bbox[1]) / height,
-                            bbox[4],
+                            *bbox[1:],
+                            bbox[0],
                         )
                     _dataset.append([image_path, xywhc_s])
 
@@ -120,14 +114,16 @@ class Dataset:
                 for line in txt:
                     # line: "<image_path>"
                     image_path = line.strip()
-                    if not os.path.exists(image_path):
-                        continue
-                    root, _ = os.path.splitext(image_path)
+                    if self.image_path_prefix:
+                        image_path = path.join(
+                            self.image_path_prefix, image_path
+                        )
+                    root, _ = path.splitext(image_path)
                     with open(root + ".txt") as fd2:
                         bboxes = fd2.readlines()
                         xywhc_s = np.zeros((len(bboxes), 5))
                         for i, bbox in enumerate(bboxes):
-                            # bbox = class_id, x, y, w, h
+                            # bbox = class_id x y w h
                             bbox = bbox.strip()
                             bbox = list(map(float, bbox.split(" ")))
                             xywhc_s[i, :] = (
@@ -213,10 +209,7 @@ class Dataset:
 
     def load_image_then_resize(self, dataset, output_size=None):
         """
-        @param dataset:
-            yolo: [image_path, [[x, y, w, h, class_id], ...]]
-            converted_coco: unit=> pixel
-                [image_path, [[x, y, w, h, class_id], ...]]
+        @param dataset: [image_path, [[x, y, w, h, class_id], ...]]
 
         @return image / 255, bboxes
         """
