@@ -1,3 +1,20 @@
+tensorflow-yolov4 (1.1.0) unstable; urgency=medium
+
+  * model: add kernel_regularizer argument
+  * tf: remove subdivision
+  * tf: dataset: fix issue where coordinates become 0 due to repeated division
+  * tf: dataset: modify to shuffle when augmentation
+  * tf: train: modify order of declaration
+  * tf: train: give xiou_loss to more weight
+  * tf: train: use keras.losses.BinaryCrossentropy to avoid nan problem
+  * tf: train: add verbose argument
+  * tf: dataset: change converted_coco format
+  * tf: add image_path_prefix argument to load_dataset()
+  * tf: add loss_verbose argument to compile()
+  * tf: reflect dataset format change to save_dataset_for_mAP()
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Mon, 10 Aug 2020 19:09:15 +0900
+
 tensorflow-yolov4 (1.0.0) unstable; urgency=medium
 
   * tf: dataset: add `label smooting` argument
