@@ -264,13 +264,16 @@ class YOLOv4(BaseClass):
 
     def compile(
         self,
-        optimizer=optimizers.Adam(learning_rate=1e-4),
         loss_iou_type: str = "ciou",
+        loss_verbose=1,
+        optimizer=optimizers.Adam(learning_rate=1e-4),
     ):
         self.model.compile(
             optimizer=optimizer,
             loss=train.YOLOv4Loss(
-                batch_size=self.batch_size, iou_type=loss_iou_type,
+                batch_size=self.batch_size,
+                iou_type=loss_iou_type,
+                verbose=loss_verbose,
             ),
         )
 
