@@ -342,10 +342,9 @@ class YOLOv4(BaseClass):
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             height, width, _ = image.shape
 
-            if data_set.dataset_type == "yolo":
-                _dataset[1] = _dataset[1] * np.array(
-                    [width, height, width, height, 1]
-                )
+            _dataset[1] = _dataset[1] * np.array(
+                [width, height, width, height, 1]
+            )
 
             # ground-truth
             with open(
