@@ -16,6 +16,7 @@ YOLOv4 Implemented in Tensorflow 2.
 - [yolov4-tiny.weights](https://drive.google.com/file/d/1GJwGiR7rizY_19c_czuLN8p31BwkhWY5/view?usp=sharing)
 - [yolov4.conv.137](https://drive.google.com/file/d/1li1pUtqpXj_-ZXxA8wJq-nzW8h2HWsrP/view?usp=sharing)
 - [yolov4.weights](https://drive.google.com/file/d/15P4cYyZ2Sd876HKAEWSmeRdFl_j-0upi/view?usp=sharing)
+- [coco.names](https://github.com/hhk7734/tensorflow-yolov4/tree/master/test/dataset)
 
 ## Dependencies
 
@@ -49,9 +50,9 @@ Ref: [https://www.tensorflow.org/lite/guide/python](https://www.tensorflow.org/l
 
 ## Performance
 
-![performance](./test/performance.png)
+![performance](https://github.com/hhk7734/tensorflow-yolov4/blob/master/test/performance.png)
 
-![performance-tiny](./test/performance-tiny.png)
+![performance-tiny](https://github.com/hhk7734/tensorflow-yolov4/blob/master/test/performance-tiny.png)
 
 ## Help
 
@@ -125,59 +126,4 @@ yolo.inference("kite.jpg")
 
 ## Training
 
-```python
-from tensorflow.keras import callbacks, optimizers
-from yolov4.tf import SaveWeightsCallback, YOLOv4
-
-yolo = YOLOv4(tiny=True)
-
-yolo.classes = "coco.names"
-yolo.input_size = 608
-yolo.batch_size = 32
-yolo.subdivision = 16
-
-yolo.make_model()
-yolo.load_weights("yolov4-tiny.conv.29", weights_type="yolo")
-
-train_data_set = yolo.load_dataset("train2017.txt")
-val_data_set = yolo.load_dataset("val2017.txt", training=False)
-# data_set = yolo.load_dataset("darknet/data/train.txt", dataset_type="yolo")
-
-lr = 1e-4
-epochs = 30000
-
-optimizer = optimizers.Adam(learning_rate=lr)
-yolo.compile(optimizer=optimizer, loss_iou_type="ciou")
-
-
-def lr_scheduler(epoch):
-    if epoch < 1000:
-        return (epoch / 1000) * lr
-    elif epoch < int(epochs * 0.8):
-        return lr
-    elif epoch < int(epochs * 0.9):
-        return lr * 0.1
-    else:
-        return lr * 0.01
-
-
-yolo.fit(
-    train_data_set,
-    epochs=epochs,
-    callbacks=[
-        callbacks.LearningRateScheduler(lr_scheduler),
-        callbacks.TerminateOnNaN(),
-        callbacks.TensorBoard(
-            log_dir="/content/drive/My Drive/Hard_Soft/NN/logs",
-        ),
-        SaveWeightsCallback(
-            yolo=yolo, weights_type="yolo", epoch_per_save=1000
-        ),
-    ],
-    validation_data=val_data_set,
-    validation_steps=100,
-    validation_freq=100,
-)
-```
-
-[Custom training on Colab jupyter notebook](./test/custom_training_on_colab.ipynb)
+[Custom training on Colab jupyter notebook](https://github.com/hhk7734/tensorflow-yolov4/blob/master/test/custom_training_on_colab.ipynb)
