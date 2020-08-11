@@ -208,9 +208,18 @@ class BaseClass:
         # pylint: disable=unused-argument, no-self-use
         return [[0.0, 0.0, 0.0, 0.0, -1]]
 
-    def inference(self, media_path, is_image=True, cv_waitKey_delay=10):
+    def inference(
+        self,
+        media_path,
+        is_image: bool = True,
+        cv_apiPreference=None,
+        cv_frame_size: tuple = None,
+        cv_fourcc: str = None,
+        cv_waitKey_delay: int = 1,
+    ):
         if not path.exists(media_path):
             raise FileNotFoundError("{} does not exist".format(media_path))
+
         if is_image:
             frame = cv2.imread(media_path)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -225,27 +234,48 @@ class BaseClass:
             cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
             cv2.imshow("result", image)
         else:
-            vid = cv2.VideoCapture(media_path)
-            while True:
-                return_value, frame = vid.read()
-                if return_value:
+            if cv_apiPreference is None:
+                cap = cv2.VideoCapture(media_path)
+            else:
+                cap = cv2.VideoCapture(media_path, cv_apiPreference)
+
+            if cv_frame_size is not None:
+                cap.set(cv2.CAP_PROP_FRAME_WIDTH, cv_frame_size[0])
+                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cv_frame_size[1])
+
+            if cv_fourcc is not None:
+                cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*cv_fourcc))
+
+            if cap.isOpened():
+                while True:
+                    start_time = time.time()
+                    try:
+                        is_success, frame = cap.read()
+                    except cv2.error:
+                        continue
+
+                    if not is_success:
+                        break
+
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                else:
-                    break
 
-                start_time = time.time()
-                bboxes = self.predict(frame)
-                curr_time = time.time()
-                exec_time = curr_time - start_time
-                info = "time: %.2f ms" % (1000 * exec_time)
-                print(info)
+                    predict_start_time = time.time()
+                    bboxes = self.predict(frame)
+                    predict_exec_time = time.time() - predict_start_time
 
-                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                image = self.draw_bboxes(frame, bboxes)
-                cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
-                cv2.imshow("result", image)
-                if cv2.waitKey(cv_waitKey_delay) & 0xFF == ord("q"):
-                    break
+                    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                    image = self.draw_bboxes(frame, bboxes)
+                    cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
+                    cv2.imshow("result", image)
+                    if cv2.waitKey(cv_waitKey_delay) & 0xFF == ord("q"):
+                        break
+
+                    print(
+                        "preidct: {:.2f} ms, fps: {:.2f}".format(
+                            predict_exec_time * 1000,
+                            1 / (time.time() - start_time),
+                        )
+                    )
 
         print("YOLOv4: Inference is finished")
         while cv2.waitKey(10) & 0xFF != ord("q"):
