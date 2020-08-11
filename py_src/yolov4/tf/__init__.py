@@ -191,50 +191,6 @@ class YOLOv4(BaseClass):
         pred_bboxes = self.fit_pred_bboxes_to_original(pred_bboxes, frame.shape)
         return pred_bboxes
 
-    def inference(self, media_path, is_image=True, cv_waitKey_delay=10):
-        if not path.exists(media_path):
-            raise FileNotFoundError("{} does not exist".format(media_path))
-        if is_image:
-            frame = cv2.imread(media_path)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-            start_time = time.time()
-            bboxes = self.predict(frame)
-            exec_time = time.time() - start_time
-            print("time: {:.2f} ms".format(exec_time * 1000))
-
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            image = self.draw_bboxes(frame, bboxes)
-            cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
-            cv2.imshow("result", image)
-        else:
-            vid = cv2.VideoCapture(media_path)
-            while True:
-                return_value, frame = vid.read()
-                if return_value:
-                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                else:
-                    break
-
-                start_time = time.time()
-                bboxes = self.predict(frame)
-                curr_time = time.time()
-                exec_time = curr_time - start_time
-                info = "time: %.2f ms" % (1000 * exec_time)
-                print(info)
-
-                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                image = self.draw_bboxes(frame, bboxes)
-                cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
-                cv2.imshow("result", image)
-                if cv2.waitKey(cv_waitKey_delay) & 0xFF == ord("q"):
-                    break
-
-        print("YOLOv4: Inference is finished")
-        while cv2.waitKey(10) & 0xFF != ord("q"):
-            pass
-        cv2.destroyWindow("result")
-
     ############
     # Training #
     ############
