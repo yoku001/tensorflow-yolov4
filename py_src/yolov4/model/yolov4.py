@@ -108,7 +108,6 @@ class YOLOv4Tiny(Model):
         xyscales,
         activation: str = "leaky",
         kernel_regularizer=None,
-        tpu: bool = False,
     ):
         super(YOLOv4Tiny, self).__init__(name="YOLOv4Tiny")
         self.csp_darknet53_tiny = CSPDarknet53Tiny(
@@ -120,7 +119,7 @@ class YOLOv4Tiny(Model):
             kernel_regularizer=kernel_regularizer,
         )
         self.yolov3_head_tiny = YOLOv3HeadTiny(
-            anchors=anchors, num_classes=num_classes, xysclaes=xyscales, tpu=tpu
+            anchors=anchors, num_classes=num_classes, xysclaes=xyscales
         )
 
     def call(self, x):

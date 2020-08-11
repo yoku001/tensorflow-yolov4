@@ -117,7 +117,7 @@ class YOLOv3Head(Model):
 
 
 class YOLOv3HeadTiny(Model):
-    def __init__(self, anchors, num_classes, xysclaes, tpu: bool = False):
+    def __init__(self, anchors, num_classes, xysclaes):
         super(YOLOv3HeadTiny, self).__init__(name="YOLOv3HeadTiny")
         self.a_half = []
         self.anchors = tf.convert_to_tensor(anchors, dtype=tf.float32)
@@ -126,7 +126,6 @@ class YOLOv3HeadTiny(Model):
         self.image_size = None
         self.num_classes = num_classes
         self.scales = xysclaes
-        self.tpu = tpu
 
     def build(self, input_shape):
         _size = [shape[1] for shape in input_shape]
@@ -149,9 +148,6 @@ class YOLOv3HeadTiny(Model):
 
         sig_m = activations.sigmoid(raw_m)
         sig_l = activations.sigmoid(raw_l)
-
-        if self.tpu:
-            return sig_m, raw_m, sig_l, raw_l
 
         # Dim(batch, grid, grid, 5 + num_classes)
         sig_m = tf.split(sig_m, 3, axis=-1)
