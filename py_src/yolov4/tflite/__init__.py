@@ -65,43 +65,10 @@ class YOLOv4(BaseClass):
         self.input_index = input_details["index"]
         output_details = self.interpreter.get_output_details()
         self.output_index = [details["index"] for details in output_details]
-        if self.tpu:
-            # sig, raw, sig, raw, ...
-            self.output_size = [
-                output_details[2 * i]["shape"][1]
-                for i in range(len(output_details) // 2)
-            ]
-            self.grid_coord = []
-            for _size in self.output_size:
-                xy_grid = np.meshgrid(np.arange(_size), np.arange(_size))
-                xy_grid = np.stack(xy_grid, axis=-1)
-                xy_grid = xy_grid[np.newaxis, ...]
-                self.grid_coord.append(xy_grid)
 
     #############
     # Inference #
     #############
-
-    def tpu_hair(self, x):
-        x = [np.split(_x, 3, axis=-1) for _x in x]
-
-        for i in range(len(self.output_size)):
-            for j in range(3):
-                # pylint: disable=unbalanced-tuple-unpacking
-                # sig
-                txty, _, conf_prob = np.split(x[2 * i][j], (2, 4), axis=-1)
-                # raw
-                _, twth, _ = np.split(x[2 * i + 1][j], (2, 4), axis=-1)
-                txty = (txty - 0.5) * self.xyscales[i] + 0.5
-                bxby = (txty + self.grid_coord[i]) / self.output_size[i]
-                bwbh = (self.anchors[i][j] / self.input_size) * np.exp(twth)
-                x[2 * i][j] = np.concatenate([bxby, bwbh, conf_prob], axis=-1)
-
-        pred = [
-            np.concatenate(x[2 * i], axis=-1)
-            for i in range(len(self.output_size))
-        ]
-        return pred
 
     def predict(self, frame: np.ndarray):
         """
@@ -123,8 +90,6 @@ class YOLOv4(BaseClass):
         candidates = [
             self.interpreter.get_tensor(index) for index in self.output_index
         ]
-        if self.tpu:
-            candidates = self.tpu_hair(candidates)
         _candidates = []
         for candidate in candidates:
             grid_size = candidate.shape[1]
