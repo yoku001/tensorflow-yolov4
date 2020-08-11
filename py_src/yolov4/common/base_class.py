@@ -246,9 +246,9 @@ class BaseClass:
             if cv_fourcc is not None:
                 cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*cv_fourcc))
 
+            prev_time = time.time()
             if cap.isOpened():
                 while True:
-                    start_time = time.time()
                     try:
                         is_success, frame = cap.read()
                     except cv2.error:
@@ -265,17 +265,27 @@ class BaseClass:
 
                     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
                     image = self.draw_bboxes(frame, bboxes)
+                    curr_time = time.time()
+
+                    cv2.putText(
+                        image,
+                        "preidct: {:.2f} ms, fps: {:.2f}".format(
+                            predict_exec_time * 1000,
+                            1 / (curr_time - prev_time),
+                        ),
+                        org=(5, 20),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=0.6,
+                        color=(50, 255, 0),
+                        thickness=2,
+                        lineType=cv2.LINE_AA,
+                    )
+                    prev_time = curr_time
+
                     cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
                     cv2.imshow("result", image)
                     if cv2.waitKey(cv_waitKey_delay) & 0xFF == ord("q"):
                         break
-
-                    print(
-                        "preidct: {:.2f} ms, fps: {:.2f}".format(
-                            predict_exec_time * 1000,
-                            1 / (time.time() - start_time),
-                        )
-                    )
 
         print("YOLOv4: Inference is finished")
         while cv2.waitKey(10) & 0xFF != ord("q"):
