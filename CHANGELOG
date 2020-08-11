@@ -1,3 +1,16 @@
+tensorflow-yolov4 (1.2.0) unstable; urgency=medium
+
+  * model: remove tpu argument
+  * tf: reflect model changes
+  * tflite: remove tpu_hair
+  * tf, tflite: move inference into BaseClass
+  * model: yolov4: remove unused import
+  * pylint: update .pylintrc
+  * common: base_class: modify inference() to be able to use cam
+  * common: base_class: add fps display to screen
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Tue, 11 Aug 2020 21:43:29 +0900
+
 tensorflow-yolov4 (1.1.0) unstable; urgency=medium
 
   * model: add kernel_regularizer argument
