@@ -68,7 +68,6 @@ class YOLOv4(BaseClass):
                 xyscales=self.xyscales,
                 activation=activation1,
                 kernel_regularizer=kernel_regularizer,
-                tpu=self.tpu,
             )
         else:
             self.model = yolov4.YOLOv4(
