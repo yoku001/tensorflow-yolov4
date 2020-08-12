@@ -265,7 +265,7 @@ class YOLOv4(BaseClass):
             use_multiprocessing=False,
         )
 
-    def save_dataset_for_mAP(self, mAP_path, data_set, num_sample=1000):
+    def save_dataset_for_mAP(self, mAP_path, data_set, num_sample=None):
         """
         gt: name left top right bottom
         dr: name confidence left top right bottom
@@ -284,6 +284,9 @@ class YOLOv4(BaseClass):
         makedirs(img_dir_path)
 
         max_dataset_size = len(data_set)
+
+        if num_sample is None:
+            num_sample = max_dataset_size
 
         for i in range(num_sample):
             # image_path, [[x, y, w, h, class_id], ...]
