@@ -127,11 +127,14 @@ class YOLOv4(BaseClass):
         ]
 
         def representative_dataset_gen():
-            for _ in range(num_calibration_steps):
-                # pylint: disable=stop-iteration-return
-                # TODO: # of iteration
+            count = 0
+            while True:
                 images, _ = next(data_set)
-                yield [tf.cast(images[0:1, ...], tf.float32)]
+                for i in range(len(images)):
+                    yield [tf.cast(images[i : i + 1, ...], tf.float32)]
+                    count += 1
+                    if count >= num_calibration_steps:
+                        return
 
         if quantization:
             converter.optimizations = [tf.lite.Optimize.DEFAULT]
