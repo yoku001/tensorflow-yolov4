@@ -147,8 +147,8 @@ def DIoU_NMS(candidates, threshold):
 def candidates_to_pred_bboxes(
     candidates,
     input_size,
+    iou_threshold: float = 0.3,
     score_threshold: float = 0.25,
-    DIoU_threshold: float = 0.3,
 ):
     """
     @param candidates: Dim(-1, (x, y, w, h, obj_score, probabilities))
@@ -202,7 +202,7 @@ def candidates_to_pred_bboxes(
         axis=-1,
     )
 
-    return DIoU_NMS(candidates, DIoU_threshold)
+    return DIoU_NMS(candidates, iou_threshold)
 
 
 def fit_pred_bboxes_to_original(bboxes, original_shape):

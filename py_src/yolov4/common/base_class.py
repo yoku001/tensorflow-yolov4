@@ -170,13 +170,20 @@ class BaseClass:
             image, target_size=self.input_size, ground_truth=ground_truth
         )
 
-    def candidates_to_pred_bboxes(self, candidates):
+    def candidates_to_pred_bboxes(
+        self, candidates, iou_threshold, score_threshold
+    ):
         """
         @param candidates: Dim(-1, (x, y, w, h, conf, prob_0, prob_1, ...))
 
         @return Dim(-1, (x, y, w, h, class_id, probability))
         """
-        return predict.candidates_to_pred_bboxes(candidates, self.input_size)
+        return predict.candidates_to_pred_bboxes(
+            candidates,
+            self.input_size,
+            iou_threshold=iou_threshold,
+            score_threshold=score_threshold,
+        )
 
     def fit_pred_bboxes_to_original(self, pred_bboxes, original_shape):
         """
@@ -204,7 +211,12 @@ class BaseClass:
     # Inference #
     #############
 
-    def predict(self, frame: np.ndarray):
+    def predict(
+        self,
+        frame: np.ndarray,
+        iou_threshold: float = 0.3,
+        score_threshold: float = 0.25,
+    ):
         # pylint: disable=unused-argument, no-self-use
         return [[0.0, 0.0, 0.0, 0.0, -1]]
 
@@ -216,6 +228,8 @@ class BaseClass:
         cv_frame_size: tuple = None,
         cv_fourcc: str = None,
         cv_waitKey_delay: int = 1,
+        iou_threshold: float = 0.3,
+        score_threshold: float = 0.25,
     ):
         if not path.exists(media_path):
             raise FileNotFoundError("{} does not exist".format(media_path))
@@ -225,7 +239,11 @@ class BaseClass:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             start_time = time.time()
-            bboxes = self.predict(frame)
+            bboxes = self.predict(
+                frame,
+                iou_threshold=iou_threshold,
+                score_threshold=score_threshold,
+            )
             exec_time = time.time() - start_time
             print("time: {:.2f} ms".format(exec_time * 1000))
 
@@ -260,7 +278,11 @@ class BaseClass:
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
                     predict_start_time = time.time()
-                    bboxes = self.predict(frame)
+                    bboxes = self.predict(
+                        frame,
+                        iou_threshold=iou_threshold,
+                        score_threshold=score_threshold,
+                    )
                     predict_exec_time = time.time() - predict_start_time
 
                     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)

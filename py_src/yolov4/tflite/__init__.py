@@ -69,7 +69,12 @@ class YOLOv4(BaseClass):
     # Inference #
     #############
 
-    def predict(self, frame: np.ndarray):
+    def predict(
+        self,
+        frame: np.ndarray,
+        iou_threshold: float = 0.3,
+        score_threshold: float = 0.25,
+    ):
         """
         Predict one frame
 
@@ -97,6 +102,10 @@ class YOLOv4(BaseClass):
             )
         candidates = np.concatenate(_candidates, axis=1)
 
-        pred_bboxes = self.candidates_to_pred_bboxes(candidates[0])
+        pred_bboxes = self.candidates_to_pred_bboxes(
+            candidates[0],
+            iou_threshold=iou_threshold,
+            score_threshold=score_threshold,
+        )
         pred_bboxes = self.fit_pred_bboxes_to_original(pred_bboxes, frame.shape)
         return pred_bboxes
