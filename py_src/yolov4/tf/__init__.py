@@ -277,7 +277,9 @@ class YOLOv4(BaseClass):
             use_multiprocessing=False,
         )
 
-    def save_dataset_for_mAP(self, mAP_path, data_set, num_sample=None):
+    def save_dataset_for_mAP(
+        self, mAP_path, data_set, num_sample=None, images_optional=False
+    ):
         """
         gt: name left top right bottom
         dr: name confidence left top right bottom
@@ -290,10 +292,12 @@ class YOLOv4(BaseClass):
 
         gt_dir_path = path.join(input_path, "ground-truth")
         dr_dir_path = path.join(input_path, "detection-results")
-        img_dir_path = path.join(input_path, "images-optional")
         makedirs(gt_dir_path)
         makedirs(dr_dir_path)
-        makedirs(img_dir_path)
+
+        if images_optional:
+            img_dir_path = path.join(input_path, "images-optional")
+            makedirs(img_dir_path)
 
         max_dataset_size = len(data_set)
 
@@ -304,9 +308,9 @@ class YOLOv4(BaseClass):
             # image_path, [[x, y, w, h, class_id], ...]
             _dataset = data_set.dataset[i % max_dataset_size]
 
-            # images-optional
-            image_path = path.join(img_dir_path, "image_{}.jpg".format(i))
-            shutil.copy(_dataset[0], image_path)
+            if images_optional:
+                image_path = path.join(img_dir_path, "image_{}.jpg".format(i))
+                shutil.copy(_dataset[0], image_path)
 
             image = cv2.imread(_dataset[0])
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
