@@ -234,6 +234,8 @@ class BaseClass:
         if not path.exists(media_path):
             raise FileNotFoundError("{} does not exist".format(media_path))
 
+        cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
+
         if is_image:
             frame = cv2.imread(media_path)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -249,7 +251,6 @@ class BaseClass:
 
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             image = self.draw_bboxes(frame, bboxes)
-            cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
             cv2.imshow("result", image)
         else:
             if cv_apiPreference is None:
@@ -304,7 +305,6 @@ class BaseClass:
                     )
                     prev_time = curr_time
 
-                    cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
                     cv2.imshow("result", image)
                     if cv2.waitKey(cv_waitKey_delay) & 0xFF == ord("q"):
                         break
