@@ -28,6 +28,17 @@ import cv2
 import numpy as np
 
 
+_HSV = [(1.0 * x / 256, 1.0, 1.0) for x in range(256)]
+_COLORS = list(map(lambda x: colorsys.hsv_to_rgb(*x), _HSV))
+_COLORS = list(
+    map(lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)), _COLORS,)
+)
+BBOX_COLORS = []
+_OFFSET = [0, 8, 4, 12, 2, 6, 10, 14, 1, 3, 5, 7, 9, 11, 13, 15]
+for i in range(256):
+    BBOX_COLORS.append(_COLORS[(i * 16) % 256 + _OFFSET[(i * 16) // 256]])
+
+
 def resize_image(
     image: np.ndarray, target_size: int, ground_truth: np.ndarray = None
 ):
@@ -106,17 +117,6 @@ def draw_bboxes(image: np.ndarray, bboxes: np.ndarray, classes: dict):
     image = np.copy(image)
     height, width, _ = image.shape
 
-    # Create colors
-    num_classes = len(classes)
-    hsv_tuples = [(1.0 * x / num_classes, 1.0, 1.0) for x in range(num_classes)]
-    colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))
-    colors = list(
-        map(
-            lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)),
-            colors,
-        )
-    )
-
     # Set propability
     if bboxes.shape[-1] == 5:
         bboxes = np.concatenate(
@@ -138,7 +138,7 @@ def draw_bboxes(image: np.ndarray, bboxes: np.ndarray, classes: dict):
         top_left = (c_x - half_w, c_y - half_h)
         bottom_right = (c_x + half_w, c_y + half_h)
         class_id = int(bbox[4])
-        bbox_color = colors[class_id]
+        bbox_color = BBOX_COLORS[class_id]
         font_size = 0.4
         font_thickness = 1
 
