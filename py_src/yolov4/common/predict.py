@@ -48,16 +48,20 @@ def DIoU_NMS(candidates, threshold):
             bboxes.append(M_bbox[np.newaxis, :])
 
             enclose_left = np.minimum(
-                class_bboxes[:, 0] - half[:, 0], M_bbox[0] - M_half[0],
+                class_bboxes[:, 0] - half[:, 0],
+                M_bbox[0] - M_half[0],
             )
             enclose_right = np.maximum(
-                class_bboxes[:, 0] + half[:, 0], M_bbox[0] + M_half[0],
+                class_bboxes[:, 0] + half[:, 0],
+                M_bbox[0] + M_half[0],
             )
             enclose_top = np.minimum(
-                class_bboxes[:, 1] - half[:, 1], M_bbox[1] - M_half[1],
+                class_bboxes[:, 1] - half[:, 1],
+                M_bbox[1] - M_half[1],
             )
             enclose_bottom = np.maximum(
-                class_bboxes[:, 1] + half[:, 1], M_bbox[1] + M_half[1],
+                class_bboxes[:, 1] + half[:, 1],
+                M_bbox[1] + M_half[1],
             )
 
             enclose_width = enclose_right - enclose_left
@@ -85,16 +89,20 @@ def DIoU_NMS(candidates, threshold):
             enclose_bottom = enclose_bottom[mask]
 
             inter_left = np.maximum(
-                class_bboxes[:, 0] - half[:, 0], M_bbox[0] - M_half[0],
+                class_bboxes[:, 0] - half[:, 0],
+                M_bbox[0] - M_half[0],
             )
             inter_right = np.minimum(
-                class_bboxes[:, 0] + half[:, 0], M_bbox[0] + M_half[0],
+                class_bboxes[:, 0] + half[:, 0],
+                M_bbox[0] + M_half[0],
             )
             inter_top = np.maximum(
-                class_bboxes[:, 1] - half[:, 1], M_bbox[1] - M_half[1],
+                class_bboxes[:, 1] - half[:, 1],
+                M_bbox[1] - M_half[1],
             )
             inter_bottom = np.minimum(
-                class_bboxes[:, 1] + half[:, 1], M_bbox[1] + M_half[1],
+                class_bboxes[:, 1] + half[:, 1],
+                M_bbox[1] + M_half[1],
             )
 
             class_area = class_bboxes[:, 2] * class_bboxes[:, 3]

@@ -110,7 +110,8 @@ class YOLOv4Tiny(Model):
     ):
         super(YOLOv4Tiny, self).__init__(name="YOLOv4Tiny")
         self.csp_darknet53_tiny = CSPDarknet53Tiny(
-            activation=activation, kernel_regularizer=kernel_regularizer,
+            activation=activation,
+            kernel_regularizer=kernel_regularizer,
         )
         self.panet_tiny = PANetTiny(
             num_classes=num_classes,

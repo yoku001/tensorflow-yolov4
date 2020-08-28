@@ -31,7 +31,10 @@ import numpy as np
 _HSV = [(1.0 * x / 256, 1.0, 1.0) for x in range(256)]
 _COLORS = list(map(lambda x: colorsys.hsv_to_rgb(*x), _HSV))
 _COLORS = list(
-    map(lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)), _COLORS,)
+    map(
+        lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)),
+        _COLORS,
+    )
 )
 BBOX_COLORS = []
 _OFFSET = [0, 8, 4, 12, 2, 6, 10, 14, 1, 3, 5, 7, 9, 11, 13, 15]

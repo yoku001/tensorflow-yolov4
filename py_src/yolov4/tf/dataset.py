@@ -147,7 +147,14 @@ class Dataset:
         """
         ground_truth = [
             np.zeros(
-                (1, _size, _size, 3, 5 + self.num_classes,), dtype=np.float32,
+                (
+                    1,
+                    _size,
+                    _size,
+                    3,
+                    5 + self.num_classes,
+                ),
+                dtype=np.float32,
             )
             for _size in self.grid_size
         ]
@@ -376,16 +383,28 @@ def mosaic(dataset0, dataset1, dataset2, dataset3):
     ]
 
     image[:, :partition_y, :partition_x, :] = dataset0[0][
-        :, top[0] : down[0], left[0] : right[0], :,
+        :,
+        top[0] : down[0],
+        left[0] : right[0],
+        :,
     ]
     image[:, :partition_y, partition_x:, :] = dataset1[0][
-        :, top[1] : down[1], left[1] : right[1], :,
+        :,
+        top[1] : down[1],
+        left[1] : right[1],
+        :,
     ]
     image[:, partition_y:, :partition_x, :] = dataset2[0][
-        :, top[2] : down[2], left[2] : right[2], :,
+        :,
+        top[2] : down[2],
+        left[2] : right[2],
+        :,
     ]
     image[:, partition_y:, partition_x:, :] = dataset3[0][
-        :, top[3] : down[3], left[3] : right[3], :,
+        :,
+        top[3] : down[3],
+        left[3] : right[3],
+        :,
     ]
 
     for i, _bboxes in enumerate(

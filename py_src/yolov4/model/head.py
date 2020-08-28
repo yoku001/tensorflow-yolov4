@@ -54,7 +54,9 @@ class YOLOv3Head(Model):
 
         self.a_half = [
             tf.constant(
-                0.5, dtype=tf.float32, shape=(1, grid[i], grid[i], 3, 2),
+                0.5,
+                dtype=tf.float32,
+                shape=(1, grid[i], grid[i], 3, 2),
             )
             for i in range(3)
         ]

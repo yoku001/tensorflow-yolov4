@@ -322,7 +322,8 @@ class YOLOv4(BaseClass):
 
             # ground-truth
             with open(
-                path.join(gt_dir_path, "image_{}.txt".format(i)), "w",
+                path.join(gt_dir_path, "image_{}.txt".format(i)),
+                "w",
             ) as fd:
                 for xywhc in _dataset[1]:
                     # name left top right bottom
@@ -344,7 +345,8 @@ class YOLOv4(BaseClass):
 
             # detection-results
             with open(
-                path.join(dr_dir_path, "image_{}.txt".format(i)), "w",
+                path.join(dr_dir_path, "image_{}.txt".format(i)),
+                "w",
             ) as fd:
                 for xywhcp in pred_bboxes:
                     # name confidence left top right bottom

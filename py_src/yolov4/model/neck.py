@@ -28,7 +28,10 @@ from .common import YOLOConv2D
 
 class PANet(Model):
     def __init__(
-        self, num_classes, activation: str = "leaky", kernel_regularizer=None,
+        self,
+        num_classes,
+        activation: str = "leaky",
+        kernel_regularizer=None,
     ):
         super(PANet, self).__init__(name="PANet")
         self.conv78 = YOLOConv2D(

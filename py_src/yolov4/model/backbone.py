@@ -297,7 +297,9 @@ class CSPDarknet53(Model):
 
 class CSPDarknet53Tiny(Model):
     def __init__(
-        self, activation: str = "leaky", kernel_regularizer=None,
+        self,
+        activation: str = "leaky",
+        kernel_regularizer=None,
     ):
         super(CSPDarknet53Tiny, self).__init__(name="CSPDarknet53Tiny")
         self.conv0 = YOLOConv2D(
