@@ -93,7 +93,7 @@ class Dataset:
             txt = fd.readlines()
             if self.dataset_type == "converted_coco":
                 for line in txt:
-                    # line: "<image_path> class_id, x, y, w, h ..."
+                    # line: "<image_path> class_id,x,y,w,h ..."
                     bboxes = line.strip().split()
                     image_path = bboxes[0]
                     if self.image_path_prefix:
@@ -141,7 +141,7 @@ class Dataset:
         """
         @param bboxes: [[b_x, b_y, b_w, b_h, class_id], ...]
 
-        @return [s, m, l]
+        @return [s, m, l] or [s, l]
             Dim(1, grid_y, grid_x, anchors,
                                 (b_x, b_y, b_w, b_h, conf, prob_0, prob_1, ...))
         """
@@ -268,7 +268,7 @@ class Dataset:
     def __next__(self):
         """
         @return image, ground_truth
-            ground_truth == (s_truth, m_truth, l_truth) or (m_truth, l_truth)
+            ground_truth == (s_truth, m_truth, l_truth) or (s_truth, l_truth)
         """
         if self.batch_size > 1:
             batch_x = []
