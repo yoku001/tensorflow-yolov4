@@ -126,4 +126,4 @@ yolo.inference("kite.jpg")
 
 ## Training
 
-[Custom training on Colab jupyter notebook](https://github.com/hhk7734/tensorflow-yolov4/blob/master/test/custom_training_on_colab.ipynb)
+[https://wiki.loliot.net/docs/etc/project/yolov4/yolov4-training](https://wiki.loliot.net/docs/etc/project/yolov4/yolov4-training)
