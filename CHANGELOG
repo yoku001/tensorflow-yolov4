@@ -1,3 +1,15 @@
+tensorflow-yolov4 (1.2.1) unstable; urgency=medium
+
+  * tf: set num_sample to the number of dataset, if not specified
+  * tf: modify to bring images in order on post-training
+  * common: base_class: add iou/score_threshold argument
+  * tf: add images_optional argument in save_dataset_for_mAP()
+  * common: base_class: modify to call cv2.namedWindow once
+  * common: media: modify to create colors once
+  * tf: dataset: update docs
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Fri, 04 Sep 2020 20:21:56 +0900
+
 tensorflow-yolov4 (1.2.0) unstable; urgency=medium
 
   * model: remove tpu argument
