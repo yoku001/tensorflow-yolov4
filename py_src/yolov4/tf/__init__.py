@@ -283,6 +283,13 @@ class YOLOv4(BaseClass):
         """
         gt: name left top right bottom
         dr: name confidence left top right bottom
+
+        @param `mAP_path`
+        @parma `data_set`
+        @param `num_sample`: Number of images for mAP. If `None`, all images in
+                `data_set` are used.
+        @parma `images_optional`: If `True`, images are copied to the
+                `mAP_path`.
         """
         input_path = path.join(mAP_path, "input")
 
