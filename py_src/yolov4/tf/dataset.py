@@ -135,6 +135,20 @@ class Dataset:
         if len(_dataset) == 0:
             raise FileNotFoundError("Failed to find images")
 
+        # Select 5 sets randomly and check the data format
+        for _ in range(5):
+            _bbox = _dataset[random.randint(0, len(_dataset) - 1)][1][0]
+            for i in range(4):
+                if _bbox[i] < 0 or _bbox[i] > 1:
+                    raise ValueError(
+                        "`center_x`, `center_y`, `width`and `height` are "
+                        "between 0.0 and 1.0."
+                    )
+            if not -1e-6 < _bbox[4] - int(_bbox[4]) < 1e-6:
+                raise ValueError(
+                    "`class_id` is an integer greater than or equal to 0."
+                )
+
         return _dataset
 
     def bboxes_to_ground_truth(self, bboxes):
