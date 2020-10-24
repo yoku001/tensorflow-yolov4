@@ -189,8 +189,8 @@ def candidates_to_pred_bboxes(
     # Remove small candidates
     candidates = candidates[
         np.logical_and(
-            candidates[:, 2] > 2 / input_size,
-            candidates[:, 3] > 2 / input_size,
+            candidates[:, 2] > (4 / input_size[0]),  # width
+            candidates[:, 3] > (4 / input_size[1]),  # height
         ),
         :,
     ]
@@ -213,22 +213,23 @@ def candidates_to_pred_bboxes(
     return DIoU_NMS(candidates, iou_threshold)
 
 
-def fit_pred_bboxes_to_original(bboxes, original_shape):
+def fit_pred_bboxes_to_original(bboxes, input_size, original_shape):
     """
-    @param bboxes: Dim(-1, (x, y, w, h, class_id, probability))
-    @param original_shape: (height, width, channels)
+    @param `bboxes`: Dim(-1, (x, y, w, h, class_id, probability))
+    @param `input_size`: (width, height)
+    @param `original_shape`: (height, width, channels)
     """
 
     height, width, _ = original_shape
-
     bboxes = np.copy(bboxes)
-    if width > height:
-        w_h = width / height
-        bboxes[:, 1] = w_h * (bboxes[:, 1] - 0.5) + 0.5
-        bboxes[:, 3] = w_h * bboxes[:, 3]
-    elif width < height:
-        h_w = height / width
-        bboxes[:, 0] = h_w * (bboxes[:, 0] - 0.5) + 0.5
-        bboxes[:, 2] = h_w * bboxes[:, 2]
+
+    if width / height > input_size[0] / input_size[1]:
+        scale = input_size[1] / height
+        bboxes[:, 1] = scale * (bboxes[:, 1] - 0.5) + 0.5
+        bboxes[:, 3] = scale * bboxes[:, 3]
+    elif width / height < input_size[0] / input_size[1]:
+        scale = input_size[0] / width
+        bboxes[:, 0] = scale * (bboxes[:, 0] - 0.5) + 0.5
+        bboxes[:, 2] = scale * bboxes[:, 2]
 
     return bboxes
