@@ -25,6 +25,7 @@ SOFTWARE.
 """
 from os import path
 import random
+from typing import Union
 
 import cv2
 import numpy as np
@@ -41,40 +42,45 @@ class Dataset:
         dataset_path: str = None,
         dataset_type: str = "converted_coco",
         data_augmentation: bool = True,
-        input_size: int = 416,
+        input_size: Union[list, tuple] = None,
         label_smoothing: float = 0.1,
         num_classes: int = None,
         image_path_prefix: str = None,
         strides: np.ndarray = None,
         xyscales: np.ndarray = None,
     ):
-        self.anchors_ratio = anchors / input_size
+        # anchors / width
+        self.anchors_ratio = anchors / input_size[0]
         self.batch_size = batch_size
         self.dataset_path = dataset_path
+        # "yolo", "converted_coco"
         self.dataset_type = dataset_type
         self.data_augmentation = data_augmentation
-        self.grid_size = input_size // strides
+        # (height, width)
+        self.grid_size = (input_size[1], input_size[0]) // np.stack(
+            (strides, strides), axis=-1
+        )
         self.input_size = input_size
         self.label_smoothing = label_smoothing
         self.image_path_prefix = image_path_prefix
         self.num_classes = num_classes
         self.xysclaes = xyscales
 
-        self.grid = [
+        self.grid_xy = [
             np.tile(
                 np.reshape(
                     np.stack(
                         np.meshgrid(
-                            (np.arange(_size) + 0.5) / _size,
-                            (np.arange(_size) + 0.5) / _size,
+                            (np.arange(_size[0]) + 0.5) / _size[0],
+                            (np.arange(_size[1]) + 0.5) / _size[1],
                         ),
                         axis=-1,
                     ),
-                    (1, _size, _size, 1, 2),
+                    (1, _size[0], _size[1], 1, 2),
                 ),
                 (1, 1, 1, 3, 1),
             ).astype(np.float32)
-            for _size in self.grid_size
+            for _size in self.grid_size  # (height, width)
         ]
 
         self.dataset = self.load_dataset()
@@ -163,8 +169,8 @@ class Dataset:
             np.zeros(
                 (
                     1,
-                    _size,
-                    _size,
+                    _size[0],
+                    _size[1],
                     3,
                     5 + self.num_classes,
                 ),
@@ -172,7 +178,8 @@ class Dataset:
             )
             for _size in self.grid_size
         ]
-        for i, _grid in enumerate(self.grid):
+
+        for i, _grid in enumerate(self.grid_xy):
             ground_truth[i][..., 0:2] = _grid
 
         for bbox in bboxes:
@@ -192,7 +199,7 @@ class Dataset:
 
             ious = []
             exist_positive = False
-            for i in range(len(self.grid)):
+            for i in range(len(self.grid_xy)):
                 # Dim(anchors, xywh)
                 anchors_xywh = np.zeros((3, 4), dtype=np.float32)
                 anchors_xywh[:, 0:2] = xywh[0:2]
