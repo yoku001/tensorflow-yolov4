@@ -108,16 +108,21 @@ class BaseClass:
     @property
     def input_size(self):
         """
+        (width, height)
+
         Usage:
             yolo.input_size = 608
+            yolo.input_size = (608, 416) # (width, height)
             print(yolo.input_size)
         """
         return self._input_size
 
     @input_size.setter
-    def input_size(self, size: int):
-        if size % 32 == 0:
-            self._input_size = size
+    def input_size(self, size: Union[int, list, tuple]):
+        if isinstance(size, int):
+            size = (size, size)
+        if size[0] % 32 == 0 and size[1] % 32 == 0:
+            self._input_size = tuple(size)
         else:
             raise ValueError("YOLOv4: Set input_size to multiples of 32")
 
