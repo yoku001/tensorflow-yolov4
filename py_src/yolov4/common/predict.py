@@ -223,12 +223,15 @@ def fit_pred_bboxes_to_original(bboxes, input_size, original_shape):
     height, width, _ = original_shape
     bboxes = np.copy(bboxes)
 
-    if width / height > input_size[0] / input_size[1]:
-        scale = input_size[1] / height
+    w_h = width / height
+    iw_ih = input_size[0] / input_size[1]
+
+    if w_h > iw_ih:
+        scale = w_h / iw_ih
         bboxes[:, 1] = scale * (bboxes[:, 1] - 0.5) + 0.5
         bboxes[:, 3] = scale * bboxes[:, 3]
-    elif width / height < input_size[0] / input_size[1]:
-        scale = input_size[0] / width
+    elif w_h < iw_ih:
+        scale = iw_ih / w_h
         bboxes[:, 0] = scale * (bboxes[:, 0] - 0.5) + 0.5
         bboxes[:, 2] = scale * bboxes[:, 2]
 
