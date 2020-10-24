@@ -176,7 +176,10 @@ class BaseClass:
         )
 
     def candidates_to_pred_bboxes(
-        self, candidates, iou_threshold, score_threshold
+        self,
+        candidates,
+        iou_threshold: float = 0.3,
+        score_threshold: float = 0.25,
     ):
         """
         @param candidates: Dim(-1, (x, y, w, h, conf, prob_0, prob_1, ...))
