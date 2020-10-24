@@ -199,7 +199,9 @@ class BaseClass:
         @param original_shape: (height, width, channels)
         """
         # pylint: disable=no-self-use
-        return predict.fit_pred_bboxes_to_original(pred_bboxes, original_shape)
+        return predict.fit_pred_bboxes_to_original(
+            pred_bboxes, self.input_size, original_shape
+        )
 
     def draw_bboxes(self, image, bboxes):
         """
