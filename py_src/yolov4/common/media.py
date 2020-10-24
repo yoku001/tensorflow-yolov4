@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import colorsys
+from typing import Union
 
 # Don't import tensorflow
 import cv2
@@ -43,12 +44,14 @@ for i in range(256):
 
 
 def resize_image(
-    image: np.ndarray, target_size: int, ground_truth: np.ndarray = None
+    image: np.ndarray,
+    target_size: Union[list, tuple],
+    ground_truth: np.ndarray = None,
 ):
     """
-    @param image:        Dim(height, width, channels)
-    @param target_size
-    @param ground_truth: [[center_x, center_y, w, h, class_id], ...]
+    @param `image`:        Dim(height, width, channels)
+    @param `target_size`:  (width, height)
+    @param `ground_truth`: [[center_x, center_y, w, h, class_id], ...]
 
     @return resized_image or (resized_image, resized_ground_truth)
 
@@ -59,30 +62,31 @@ def resize_image(
     """
     height, width, _ = image.shape
 
-    # Resize
-    if max(height, width) != target_size:
-        scale = min(target_size / width, target_size / height)
-        new_width = int(round(width * scale))
-        new_height = int(round(height * scale))
-        resized_image = cv2.resize(image, (new_width, new_height))
+    if width / height >= target_size[0] / target_size[1]:
+        scale = target_size[0] / width
     else:
-        new_width = width
-        new_height = height
+        scale = target_size[1] / height
+
+    # Resize
+    if scale != 1:
+        width = int(round(width * scale))
+        height = int(round(height * scale))
+        resized_image = cv2.resize(image, (width, height))
+    else:
         resized_image = np.copy(image)
 
     # Pad
-    dw = int(target_size - new_width)
-    dh = int(target_size - new_height)
+    dw = target_size[0] - width
+    dh = target_size[1] - height
 
-    if dw != 0 or dh != 0:
+    if not (dw == 0 and dh == 0):
         dw = dw // 2
         dh = dh // 2
+        # height, width, channels
         padded_image = np.full(
-            (target_size, target_size, 3), 255, dtype=np.uint8
+            (target_size[1], target_size[0], 3), 255, dtype=np.uint8
         )
-        padded_image[
-            dh : new_height + dh, dw : new_width + dw, :
-        ] = resized_image
+        padded_image[dh : height + dh, dw : width + dw, :] = resized_image
     else:
         padded_image = resized_image
 
@@ -93,13 +97,13 @@ def resize_image(
     ground_truth = np.copy(ground_truth)
 
     if dw > dh:
-        w_h = new_width / new_height
-        ground_truth[:, 0] = w_h * (ground_truth[:, 0] - 0.5) + 0.5
-        ground_truth[:, 2] = w_h * ground_truth[:, 2]
+        scale = width / target_size[0]
+        ground_truth[:, 0] = scale * (ground_truth[:, 0] - 0.5) + 0.5
+        ground_truth[:, 2] = scale * ground_truth[:, 2]
     elif dw < dh:
-        h_w = new_height / new_width
-        ground_truth[:, 1] = h_w * (ground_truth[:, 1] - 0.5) + 0.5
-        ground_truth[:, 3] = h_w * ground_truth[:, 3]
+        scale = height / target_size[1]
+        ground_truth[:, 1] = scale * (ground_truth[:, 1] - 0.5) + 0.5
+        ground_truth[:, 3] = scale * ground_truth[:, 3]
 
     return padded_image, ground_truth
 
