@@ -316,6 +316,8 @@ class BaseClass:
                     if cv2.waitKey(cv_waitKey_delay) & 0xFF == ord("q"):
                         break
 
+            cap.release()
+
         print("YOLOv4: Inference is finished")
         while cv2.waitKey(10) & 0xFF != ord("q"):
             pass
