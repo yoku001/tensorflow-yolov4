@@ -21,16 +21,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-from datetime import datetime
 from os import makedirs, path
 import shutil
-import time
-from typing import Union
 
 import cv2
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import backend, layers, models, optimizers
+from tensorflow.keras import backend, layers, optimizers
 
 from . import dataset, train, weights
 from .train import SaveWeightsCallback
@@ -60,7 +57,8 @@ class YOLOv4(BaseClass):
         self._has_weights = False
         backend.clear_session()
 
-        inputs = layers.Input([self.input_size, self.input_size, 3])
+        # height, width, channels
+        inputs = layers.Input([self.input_size[1], self.input_size[0], 3])
         if self.tiny:
             self.model = yolov4.YOLOv4Tiny(
                 anchors=self.anchors,
@@ -176,7 +174,7 @@ class YOLOv4(BaseClass):
 
         @return pred_bboxes == Dim(-1, (x, y, w, h, class_id, probability))
         """
-        # image_data == Dim(1, input_szie, input_size, channels)
+        # image_data == Dim(1, input_size[1], input_size[0], channels)
         image_data = self.resize_image(frame)
         image_data = image_data / 255
         image_data = image_data[np.newaxis, ...].astype(np.float32)
@@ -186,10 +184,10 @@ class YOLOv4(BaseClass):
         candidates = self.model.predict(image_data)
         _candidates = []
         for candidate in candidates:
-            grid_size = candidate.shape[1]
+            grid_size = candidate.shape[1:3]
             _candidates.append(
                 tf.reshape(
-                    candidate[0], shape=(1, grid_size * grid_size * 3, -1)
+                    candidate[0], shape=(1, grid_size[0] * grid_size[1] * 3, -1)
                 )
             )
         candidates = np.concatenate(_candidates, axis=1)
