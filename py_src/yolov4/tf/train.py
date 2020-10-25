@@ -50,22 +50,22 @@ class YOLOv4Loss(Loss):
 
     def call(self, y_true, y_pred):
         """
-        @param y_true: Dim(batch, grid, grid, 3,
+        @param `y_true`: Dim(batch, g_height, g_width, 3,
                                 (b_x, b_y, b_w, b_h, conf, prob_0, prob_1, ...))
-        @param y_pred: Dim(batch, grid, grid, 3,
+        @param `y_pred`: Dim(batch, g_height, g_width, 3,
                                 (b_x, b_y, b_w, b_h, conf, prob_0, prob_1, ...))
         """
         if len(y_pred.shape) == 4:
-            _, grid_size, _, box_size = y_pred.shape
+            _, g_height, g_width, box_size = y_pred.shape
             box_size = box_size // 3
         else:
-            _, grid_size, _, _, box_size = y_pred.shape
+            _, g_height, g_width, _, box_size = y_pred.shape
 
         y_true = tf.reshape(
-            y_true, shape=(-1, grid_size * grid_size * 3, box_size)
+            y_true, shape=(-1, g_height * g_width * 3, box_size)
         )
         y_pred = tf.reshape(
-            y_pred, shape=(-1, grid_size * grid_size * 3, box_size)
+            y_pred, shape=(-1, g_height * g_width * 3, box_size)
         )
 
         truth_xywh = y_true[..., 0:4]
@@ -81,10 +81,10 @@ class YOLOv4Loss(Loss):
         one_obj = truth_conf
         num_obj = tf.reduce_sum(one_obj, axis=[1, 2])
         one_noobj = 1.0 - one_obj
-        # Dim(batch, grid * grid * 3, 1)
+        # Dim(batch, g_height * g_width * 3, 1)
         one_obj_mask = one_obj > 0.5
 
-        zero = tf.zeros((1, grid_size * grid_size * 3, 1), dtype=tf.float32)
+        zero = tf.zeros((1, g_height * g_width * 3, 1), dtype=tf.float32)
 
         # IoU Loss
         xiou = self.bbox_xiou(truth_xywh, pred_xywh)
@@ -98,9 +98,9 @@ class YOLOv4Loss(Loss):
         def body(i, max_iou):
             object_mask = tf.reshape(one_obj_mask[i, ...], shape=(-1,))
             truth_bbox = tf.boolean_mask(truth_xywh[i, ...], mask=object_mask)
-            # grid * grid * 3,      1, xywh
+            # g_height * g_width * 3,      1, xywh
             #               1, answer, xywh
-            #   => grid * grid * 3, answer
+            #   => g_height * g_width * 3, answer
             _max_iou0 = tf.cond(
                 tf.equal(num_obj[i], 0),
                 lambda: zero,
@@ -115,7 +115,7 @@ class YOLOv4Loss(Loss):
                     shape=(1, -1, 1),
                 ),
             )
-            # 1, grid * grid * 3, 1
+            # 1, g_height * g_width * 3, 1
             _max_iou1 = tf.cond(
                 tf.equal(i, 0),
                 lambda: _max_iou0,
@@ -129,7 +129,7 @@ class YOLOv4Loss(Loss):
             [i0, zero],
             shape_invariants=[
                 i0.get_shape(),
-                tf.TensorShape([None, grid_size * grid_size * 3, 1]),
+                tf.TensorShape([None, g_height * g_width * 3, 1]),
             ],
         )
 
@@ -153,9 +153,11 @@ class YOLOv4Loss(Loss):
         total_loss = xiou_loss + conf_loss + prob_loss
 
         if self.verbose != 0:
+            # tf.print(
+            #     f"grid: {g_height}*{g_width}, iou_loss: {xiou_loss:7.3f}, conf_loss: {conf_loss:7.3f}, prob_loss: {prob_loss:7.3f}, total_loss: {total_loss:7.3f}"
+            # )
             tf.print(
-                "grid:",
-                grid_size,
+                f"grid: {g_height}*{g_width}",
                 "iou_loss:",
                 xiou_loss,
                 "conf_loss:",
