@@ -54,9 +54,9 @@ class BaseClass:
         self._classes = None
         self._input_size = None
         if tiny:
-            self.strides = [16, 32]
+            self._strides = np.array([16, 32])
         else:
-            self.strides = [8, 16, 32]
+            self._strides = np.array([8, 16, 32])
         if tiny:
             self.xyscales = [1.05, 1.05]
         else:
@@ -129,19 +129,16 @@ class BaseClass:
     @property
     def strides(self):
         """
-        Usage:
-            yolo.strides = [8, 16, 32]
-            yolo.strides = np.array([8, 16, 32])
-            print(yolo.strides)
+        Tiny(convolution stride = 2)
+            640x480 -> 320x240 -> ... -> 40x30 -> ... -> 20x15 -> ... -> 40x30
+            pred_m: 640x480 -> stride = 16 -> 40x30
+            pred_l: 640x480 -> stride = 32 -> 20x15
         """
         return self._strides
 
     @strides.setter
     def strides(self, strides: Union[list, tuple, np.ndarray]):
-        if isinstance(strides, (list, tuple)):
-            self._strides = np.array(strides)
-        elif isinstance(strides, np.ndarray):
-            self._strides = strides
+        raise ValueError("YOLOv4: Do not change yolo.strides")
 
     @property
     def xyscales(self):
