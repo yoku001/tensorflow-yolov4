@@ -29,7 +29,10 @@ def DIoU_NMS(candidates, threshold):
     Distance Intersection over Union(DIoU)
     Non-Maximum Suppression(NMS)
 
-    @param candidates: [[center_x, center_y, w, h, class_id, propability], ...]
+    @param `candidates`:
+            [[center_x, center_y, w, h, class_id, propability], ...]
+    @param `threshold`: If DIoU is above the threshold, bboxes are considered
+            the same. All but the bbox with the highest probability are removed.
     """
     bboxes = []
     for class_id in set(candidates[:, 4]):
@@ -109,7 +112,7 @@ def DIoU_NMS(candidates, threshold):
             class_bboxes_area = class_bboxes[:, 2] * class_bboxes[:, 3]
             max_bbox_area = max_bbox[2] * max_bbox[3]
             inter_area = (inter_right - inter_left) * (inter_bottom - inter_top)
-            iou = inter_area / (class_bboxes_area + max_bbox_area)
+            iou = inter_area / (class_bboxes_area + max_bbox_area - inter_area)
 
             c_squared = (enclose_right - enclose_left) * (
                 enclose_right - enclose_left
