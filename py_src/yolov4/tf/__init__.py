@@ -161,6 +161,21 @@ class YOLOv4(BaseClass):
     # Inference #
     #############
 
+    @tf.function
+    def _predict(self, x):
+        # s_pred, m_pred, l_pred
+        # x_pred == Dim(1, output_size, output_size, anchors, (bbox))
+        candidates = self.model(x, training=False)
+        _candidates = []
+        for candidate in candidates:
+            grid_size = candidate.shape[1:3]
+            _candidates.append(
+                tf.reshape(
+                    candidate[0], shape=(1, grid_size[0] * grid_size[1] * 3, -1)
+                )
+            )
+        return tf.concat(_candidates, axis=1)
+
     def predict(
         self,
         frame: np.ndarray,
@@ -176,25 +191,14 @@ class YOLOv4(BaseClass):
         """
         # image_data == Dim(1, input_size[1], input_size[0], channels)
         image_data = self.resize_image(frame)
-        image_data = image_data / 255
+        image_data = image_data / 255.0
         image_data = image_data[np.newaxis, ...].astype(np.float32)
 
-        # s_pred, m_pred, l_pred
-        # x_pred == Dim(1, output_size, output_size, anchors, (bbox))
-        candidates = self.model.predict(image_data)
-        _candidates = []
-        for candidate in candidates:
-            grid_size = candidate.shape[1:3]
-            _candidates.append(
-                tf.reshape(
-                    candidate[0], shape=(1, grid_size[0] * grid_size[1] * 3, -1)
-                )
-            )
-        candidates = np.concatenate(_candidates, axis=1)
+        candidates = self._predict(image_data)
 
         # Select 0
         pred_bboxes = self.candidates_to_pred_bboxes(
-            candidates[0],
+            candidates[0].numpy(),
             iou_threshold=iou_threshold,
             score_threshold=score_threshold,
         )
