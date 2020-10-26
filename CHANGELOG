@@ -1,3 +1,25 @@
+tensorflow-yolov4 (2.0.0) unstable; urgency=medium
+
+  * tf:dataset: add data format check
+  * common: base_class: change input_size from integer to (width, height)
+  * common: base_class: set default arguments for candidates_to_pred_bboxes
+  * tf: dataset: modify variable initialization according to input_size type change
+  * common: predict: reflect input_size type change
+  * common: media: reflect input_size type change to resize_image
+  * tf:dataset: reflect input_size type change to data augmentation
+  * common: base_class: reflect predict.fit_pred_bboxes_to_original change
+  * common: predict: fix problem that occurred because image size change was not considered
+  * tf: reflect input_size type change
+  * model: head: reflect input_size type change
+  * tf: train: reflect input_size type change
+  * common: base_class: change strides to immutable constant
+  * common: base_class: add cap.release() to release resources
+  * tflite: reflect input_size type change
+  * tf: optimize predict() using @tf.function
+  * common: predict: fix problem caused by incorrect iou calculation
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Tue, 27 Oct 2020 00:11:59 +0900
+
 tensorflow-yolov4 (1.2.1) unstable; urgency=medium
 
   * tf: set num_sample to the number of dataset, if not specified
