@@ -40,108 +40,112 @@ def DIoU_NMS(candidates, threshold):
             continue
 
         while True:
-            half = class_bboxes[:, 2:4] * 0.5
-            M_index = np.argmax(class_bboxes[:, 5])
-            M_bbox = class_bboxes[M_index, :]
-            M_half = half[M_index, :]
+            half_wh = class_bboxes[:, 2:4] * 0.5
+            max_index = np.argmax(class_bboxes[:, 5])
+            max_bbox = class_bboxes[max_index, :]
+            max_half_wh = half_wh[max_index, :]
             # Max probability
-            bboxes.append(M_bbox[np.newaxis, :])
+            bboxes.append(max_bbox[np.newaxis, :])
 
             enclose_left = np.minimum(
-                class_bboxes[:, 0] - half[:, 0],
-                M_bbox[0] - M_half[0],
+                class_bboxes[:, 0] - half_wh[:, 0],
+                max_bbox[0] - max_half_wh[0],
             )
             enclose_right = np.maximum(
-                class_bboxes[:, 0] + half[:, 0],
-                M_bbox[0] + M_half[0],
+                class_bboxes[:, 0] + half_wh[:, 0],
+                max_bbox[0] + max_half_wh[0],
             )
             enclose_top = np.minimum(
-                class_bboxes[:, 1] - half[:, 1],
-                M_bbox[1] - M_half[1],
+                class_bboxes[:, 1] - half_wh[:, 1],
+                max_bbox[1] - max_half_wh[1],
             )
             enclose_bottom = np.maximum(
-                class_bboxes[:, 1] + half[:, 1],
-                M_bbox[1] + M_half[1],
+                class_bboxes[:, 1] + half_wh[:, 1],
+                max_bbox[1] + max_half_wh[1],
             )
 
             enclose_width = enclose_right - enclose_left
             enclose_height = enclose_bottom - enclose_top
 
-            width_mask = enclose_width >= class_bboxes[:, 2] + M_bbox[2]
-            height_mask = enclose_height >= class_bboxes[:, 3] + M_bbox[3]
-            other_mask = np.logical_or(width_mask, height_mask)
-            other_bboxes = class_bboxes[other_mask]
+            width_mask = enclose_width >= class_bboxes[:, 2] + max_bbox[2]
+            height_mask = enclose_height >= class_bboxes[:, 3] + max_bbox[3]
+            # bboxes with no overlap with max_bbox
+            no_overlap_mask = np.logical_or(width_mask, height_mask)
+            no_overlap_bboxes = class_bboxes[no_overlap_mask]
 
-            mask = np.logical_not(other_mask)
-            class_bboxes = class_bboxes[mask]
+            overlap_mask = np.logical_not(no_overlap_mask)
+            class_bboxes = class_bboxes[overlap_mask]
             if class_bboxes.shape[0] == 1:
-                if other_bboxes.shape[0] == 1:
-                    bboxes.append(other_bboxes)
+                if no_overlap_bboxes.shape[0] == 1:
+                    bboxes.append(no_overlap_bboxes)
                     break
 
-                class_bboxes = other_bboxes
+                class_bboxes = no_overlap_bboxes
                 continue
 
-            half = half[mask]
-            enclose_left = enclose_left[mask]
-            enclose_right = enclose_right[mask]
-            enclose_top = enclose_top[mask]
-            enclose_bottom = enclose_bottom[mask]
+            half_wh = half_wh[overlap_mask]
+            enclose_left = enclose_left[overlap_mask]
+            enclose_right = enclose_right[overlap_mask]
+            enclose_top = enclose_top[overlap_mask]
+            enclose_bottom = enclose_bottom[overlap_mask]
 
             inter_left = np.maximum(
-                class_bboxes[:, 0] - half[:, 0],
-                M_bbox[0] - M_half[0],
+                class_bboxes[:, 0] - half_wh[:, 0],
+                max_bbox[0] - max_half_wh[0],
             )
             inter_right = np.minimum(
-                class_bboxes[:, 0] + half[:, 0],
-                M_bbox[0] + M_half[0],
+                class_bboxes[:, 0] + half_wh[:, 0],
+                max_bbox[0] + max_half_wh[0],
             )
             inter_top = np.maximum(
-                class_bboxes[:, 1] - half[:, 1],
-                M_bbox[1] - M_half[1],
+                class_bboxes[:, 1] - half_wh[:, 1],
+                max_bbox[1] - max_half_wh[1],
             )
             inter_bottom = np.minimum(
-                class_bboxes[:, 1] + half[:, 1],
-                M_bbox[1] + M_half[1],
+                class_bboxes[:, 1] + half_wh[:, 1],
+                max_bbox[1] + max_half_wh[1],
             )
 
-            class_area = class_bboxes[:, 2] * class_bboxes[:, 3]
-            M_area = M_bbox[2] * M_bbox[3]
+            class_bboxes_area = class_bboxes[:, 2] * class_bboxes[:, 3]
+            max_bbox_area = max_bbox[2] * max_bbox[3]
             inter_area = (inter_right - inter_left) * (inter_bottom - inter_top)
-            iou = inter_area / (class_area + M_area)
+            iou = inter_area / (class_bboxes_area + max_bbox_area)
 
-            c = (enclose_right - enclose_left) * (
+            c_squared = (enclose_right - enclose_left) * (
                 enclose_right - enclose_left
             ) + (enclose_bottom - enclose_top) * (enclose_bottom - enclose_top)
-            d = (class_bboxes[:, 0] - M_bbox[0]) * (
-                class_bboxes[:, 0] - M_bbox[0]
-            ) + (class_bboxes[:, 1] - M_bbox[1]) * (
-                class_bboxes[:, 1] - M_bbox[1]
+            d_squared = (class_bboxes[:, 0] - max_bbox[0]) * (
+                class_bboxes[:, 0] - max_bbox[0]
+            ) + (class_bboxes[:, 1] - max_bbox[1]) * (
+                class_bboxes[:, 1] - max_bbox[1]
             )
 
             # DIoU = IoU - d^2 / c^2
-            other_mask = iou - d / c < threshold
-            other2_bboxes = class_bboxes[other_mask]
-            if other_bboxes.shape[0] != 0 and other2_bboxes.shape[0] != 0:
+            little_overlap_mask = iou - d_squared / c_squared < threshold
+            little_overlap_bboxes = class_bboxes[little_overlap_mask]
+            if (
+                no_overlap_bboxes.shape[0] > 0
+                and little_overlap_bboxes.shape[0] > 0
+            ):
                 class_bboxes = np.concatenate(
-                    [other_bboxes, other2_bboxes], axis=0
+                    [no_overlap_bboxes, little_overlap_bboxes], axis=0
                 )
                 continue
 
-            if other_bboxes.shape[0] != 0:
-                if other_bboxes.shape[0] == 1:
-                    bboxes.append(other_bboxes)
+            if no_overlap_bboxes.shape[0] > 0:
+                if no_overlap_bboxes.shape[0] == 1:
+                    bboxes.append(no_overlap_bboxes)
                     break
 
-                class_bboxes = other_bboxes
+                class_bboxes = no_overlap_bboxes
                 continue
 
-            if other2_bboxes.shape[0] != 0:
-                if other2_bboxes.shape[0] == 1:
-                    bboxes.append(other2_bboxes)
+            if little_overlap_bboxes.shape[0] > 0:
+                if little_overlap_bboxes.shape[0] == 1:
+                    bboxes.append(little_overlap_bboxes)
                     break
 
-                class_bboxes = other2_bboxes
+                class_bboxes = little_overlap_bboxes
                 continue
 
             break
@@ -173,17 +177,17 @@ def candidates_to_pred_bboxes(
     candidates = candidates[class_prob > score_threshold, :]
 
     # Remove out of range candidates
-    half = candidates[:, 2:4] * 0.5
-    mask = candidates[:, 0] - half[:, 0] >= 0
+    half_wh = candidates[:, 2:4] * 0.5
+    mask = candidates[:, 0] - half_wh[:, 0] >= 0
     candidates = candidates[mask, :]
-    half = half[mask, :]
-    mask = candidates[:, 0] + half[:, 0] <= 1
+    half_wh = half_wh[mask, :]
+    mask = candidates[:, 0] + half_wh[:, 0] <= 1
     candidates = candidates[mask, :]
-    half = half[mask, :]
-    mask = candidates[:, 1] - half[:, 1] >= 0
+    half_wh = half_wh[mask, :]
+    mask = candidates[:, 1] - half_wh[:, 1] >= 0
     candidates = candidates[mask, :]
-    half = half[mask, :]
-    mask = candidates[:, 1] + half[:, 1] <= 1
+    half_wh = half_wh[mask, :]
+    mask = candidates[:, 1] + half_wh[:, 1] <= 1
     candidates = candidates[mask, :]
 
     # Remove small candidates
