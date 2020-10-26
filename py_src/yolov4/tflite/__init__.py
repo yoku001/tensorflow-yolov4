@@ -60,7 +60,8 @@ class YOLOv4(BaseClass):
             self.interpreter = tflite.Interpreter(model_path=tflite_path)
         self.interpreter.allocate_tensors()
         input_details = self.interpreter.get_input_details()[0]
-        self.input_size = input_details["shape"][1]
+        # width, height
+        self.input_size = (input_details["shape"][2], input_details["shape"][1])
         self.input_index = input_details["index"]
         output_details = self.interpreter.get_output_details()
         self.output_index = [details["index"] for details in output_details]
@@ -82,13 +83,13 @@ class YOLOv4(BaseClass):
 
         @return pred_bboxes == Dim(-1, (x, y, w, h, class_id, probability))
         """
-        # image_data == Dim(1, input_szie, input_size, channels)
+        # image_data == Dim(1, input_size[1], input_size[0], channels)
         image_data = self.resize_image(frame)
         image_data = image_data / 255
         image_data = image_data[np.newaxis, ...].astype(np.float32)
 
         # s_pred, m_pred, l_pred
-        # x_pred == Dim(1, output_size, output_size, anchors, (bbox))
+        # x_pred == Dim(1, g_height, g_width, anchors, (bbox))
         self.interpreter.set_tensor(self.input_index, image_data)
         self.interpreter.invoke()
         candidates = [
@@ -96,9 +97,11 @@ class YOLOv4(BaseClass):
         ]
         _candidates = []
         for candidate in candidates:
-            grid_size = candidate.shape[1]
+            grid_size = candidate.shape[1:3]
             _candidates.append(
-                np.reshape(candidate[0], (1, grid_size * grid_size * 3, -1))
+                np.reshape(
+                    candidate[0], (1, grid_size[0] * grid_size[1] * 3, -1)
+                )
             )
         candidates = np.concatenate(_candidates, axis=1)
 
