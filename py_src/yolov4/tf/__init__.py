@@ -34,6 +34,11 @@ from .train import SaveWeightsCallback
 from ..common.base_class import BaseClass
 from ..model import yolov4
 
+physical_devices = tf.config.experimental.list_physical_devices("GPU")
+if len(physical_devices) > 0:
+    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+    print("Call tf.config.experimental.set_memory_growth(GPU0, True)")
+
 
 class YOLOv4(BaseClass):
     def __init__(self, tiny: bool = False, tpu: bool = False):
