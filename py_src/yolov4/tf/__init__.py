@@ -241,7 +241,9 @@ class YOLOv4(BaseClass):
         loss_iou_type: str = "ciou",
         loss_verbose=1,
         optimizer=optimizers.Adam(learning_rate=1e-4),
+        **kwargs
     ):
+        # TODO: steps_per_execution tensorflow2.4.0-rc4
         self.model.compile(
             optimizer=optimizer,
             loss=train.YOLOv4Loss(
@@ -249,6 +251,7 @@ class YOLOv4(BaseClass):
                 iou_type=loss_iou_type,
                 verbose=loss_verbose,
             ),
+            **kwargs
         )
 
     def fit(
@@ -262,6 +265,7 @@ class YOLOv4(BaseClass):
         steps_per_epoch=None,
         validation_steps=None,
         validation_freq=1,
+        **kwargs
     ):
         self.model.fit(
             data_set,
@@ -269,19 +273,12 @@ class YOLOv4(BaseClass):
             epochs=epochs,
             verbose=verbose,
             callbacks=callbacks,
-            validation_split=0.0,
             validation_data=validation_data,
-            shuffle=True,
-            class_weight=None,
-            sample_weight=None,
             initial_epoch=initial_epoch,
             steps_per_epoch=steps_per_epoch,
             validation_steps=validation_steps,
-            validation_batch_size=None,
             validation_freq=validation_freq,
-            max_queue_size=10,
-            workers=1,
-            use_multiprocessing=False,
+            **kwargs
         )
 
     def save_dataset_for_mAP(
