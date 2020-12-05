@@ -317,7 +317,7 @@ class YOLOv4(BaseClass):
 
         for i in range(num_sample):
             # image_path, [[x, y, w, h, class_id], ...]
-            _dataset = data_set.dataset[i % max_dataset_size]
+            _dataset = data_set.dataset[i % max_dataset_size].copy()
 
             if images_optional:
                 image_path = path.join(img_dir_path, "image_{}.jpg".format(i))
