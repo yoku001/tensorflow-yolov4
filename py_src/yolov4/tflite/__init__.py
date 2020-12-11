@@ -26,11 +26,10 @@ from typing import Union
 
 import numpy as np
 
-
 try:
-    import tensorflow.lite as tflite
-except ModuleNotFoundError:
     import tflite_runtime.interpreter as tflite
+except ModuleNotFoundError:
+    import tensorflow.lite as tflite
 
 from ..common import media, predict
 from ..common.base_class import BaseClass
@@ -85,16 +84,22 @@ class YOLOv4(BaseClass):
         """
         # image_data == Dim(1, input_size[1], input_size[0], channels)
         image_data = self.resize_image(frame)
-        image_data = image_data / 255
-        image_data = image_data[np.newaxis, ...].astype(np.float32)
+        if not self.tpu:
+            image_data = image_data.astype(np.float32) / 255.0
+        image_data = image_data[np.newaxis, ...]
 
         # s_pred, m_pred, l_pred
         # x_pred == Dim(1, g_height, g_width, anchors, (bbox))
         self.interpreter.set_tensor(self.input_index, image_data)
         self.interpreter.invoke()
-        candidates = [
-            self.interpreter.get_tensor(index) for index in self.output_index
-        ]
+        if not self.tpu:
+            candidates = [
+                self.interpreter.get_tensor(index) for index in self.output_index
+            ]
+        else:
+            candidates = [
+                self.interpreter.get_tensor(index).astype(np.float32) / 255.0 for index in self.output_index
+            ]
         _candidates = []
         for candidate in candidates:
             grid_size = candidate.shape[1:3]

@@ -147,6 +147,7 @@ class YOLOv4(BaseClass):
         elif quantization == "int":
             converter.representative_dataset = representative_dataset_gen
         elif quantization == "full_int8":
+            converter.experimental_new_converter = False
             converter.representative_dataset = representative_dataset_gen
             _supported_ops += [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
             converter.inference_input_type = tf.int8
