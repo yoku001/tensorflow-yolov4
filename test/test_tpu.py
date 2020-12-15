@@ -14,4 +14,4 @@ yolo.classes = "dataset/coco.names"
 
 yolo.load_tflite(MODEL_PATH)
 
-yolo.inference(IMAGE_PATH) 
+yolo.inference(IMAGE_PATH)

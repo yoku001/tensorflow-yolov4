@@ -94,11 +94,13 @@ class YOLOv4(BaseClass):
         self.interpreter.invoke()
         if not self.tpu:
             candidates = [
-                self.interpreter.get_tensor(index) for index in self.output_index
+                self.interpreter.get_tensor(index)
+                for index in self.output_index
             ]
         else:
             candidates = [
-                self.interpreter.get_tensor(index).astype(np.float32) / 255.0 for index in self.output_index
+                self.interpreter.get_tensor(index).astype(np.float32) / 255.0
+                for index in self.output_index
             ]
         _candidates = []
         for candidate in candidates:

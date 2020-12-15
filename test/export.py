@@ -23,9 +23,22 @@ yolov4.model.save(MODEL_PATH)
 
 # save as onnx model
 try:
-    subprocess.run(["python", "-m", "tf2onnx.convert", "--opset", "12",
-                    "--saved-model", MODEL_PATH, "--output", MODEL_PATH + "model.onnx"],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    subprocess.run(
+        [
+            "python",
+            "-m",
+            "tf2onnx.convert",
+            "--opset",
+            "12",
+            "--saved-model",
+            MODEL_PATH,
+            "--output",
+            MODEL_PATH + "model.onnx",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
 except:
     pass
 
@@ -33,7 +46,7 @@ except:
 dataset = yolov4.load_dataset(
     dataset_path="dataset/train2017.txt",
     training=False,
-    image_path_prefix=DATASET_PATH
+    image_path_prefix=DATASET_PATH,
 )
 
 # save quantization aware model
@@ -41,5 +54,5 @@ yolov4.save_as_tflite(
     MODEL_PATH + "quant_model.tflite",
     quantization="full_int8",
     data_set=dataset,
-    num_calibration_steps=250
+    num_calibration_steps=250,
 )
