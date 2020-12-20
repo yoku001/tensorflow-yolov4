@@ -1,3 +1,11 @@
+tensorflow-yolov4 (2.0.2) ustable; urgency=medium
+
+  * tf: set converter.experimental_new_converter to False
+  * tf: set converter.inference_in/output_type to tf.uint8
+  * tflite: fix problem of not finding load_delegate()
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Sun, 20 Dec 2020 13:06:08 +0900
+
 tensorflow-yolov4 (2.0.1) unstable; urgency=medium
 
   * tf: set memory growth to True when using GPU
