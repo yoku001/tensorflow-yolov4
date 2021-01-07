@@ -1,3 +1,10 @@
+tensorflow-yolov4 (2.0.3) unstable; urgency=medium
+
+  * common: allow media_path to be video stream id
+  * tflite: fix problem of not finding load_delegate()
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Thu, 07 Jan 2021 21:34:35 +0900
+
 tensorflow-yolov4 (2.0.2) ustable; urgency=medium
 
   * tf: set converter.experimental_new_converter to False
