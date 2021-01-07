@@ -238,7 +238,7 @@ class BaseClass:
         iou_threshold: float = 0.3,
         score_threshold: float = 0.25,
     ):
-        if not path.exists(media_path):
+        if isinstance(media_path, str) and not path.exists(media_path):
             raise FileNotFoundError("{} does not exist".format(media_path))
 
         cv2.namedWindow("result", cv2.WINDOW_AUTOSIZE)
