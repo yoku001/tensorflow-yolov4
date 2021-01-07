@@ -28,7 +28,8 @@ try:
     from tflite_runtime.interpreter import load_delegate
 except ModuleNotFoundError:
     import tensorflow.lite as tflite
-    from tensorflow.lite.experimental import load_delegate
+
+    load_delegate = tflite.experimental.load_delegate
 
 from ..common.base_class import BaseClass
 
