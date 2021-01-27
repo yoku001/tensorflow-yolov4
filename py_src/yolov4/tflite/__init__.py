@@ -21,6 +21,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import platform
+
 import numpy as np
 
 try:
@@ -32,6 +34,12 @@ except ModuleNotFoundError:
     load_delegate = tflite.experimental.load_delegate
 
 from ..common.base_class import BaseClass
+
+EDGETPU_SHARED_LIB = {
+    "Linux": "libedgetpu.so.1",
+    "Darwin": "libedgetpu.1.dylib",
+    "Windows": "edgetpu.dll",
+}[platform.system()]
 
 
 class YOLOv4(BaseClass):
@@ -46,11 +54,13 @@ class YOLOv4(BaseClass):
         self.output_index = None
         self.output_size = None
 
-    def load_tflite(self, tflite_path: str) -> None:
+    def load_tflite(
+        self, tflite_path: str, edgetpu_lib: str = EDGETPU_SHARED_LIB
+    ) -> None:
         if self.tpu:
             self.interpreter = tflite.Interpreter(
                 model_path=tflite_path,
-                experimental_delegates=[load_delegate("libedgetpu.so.1")],
+                experimental_delegates=[load_delegate(edgetpu_lib)],
             )
         else:
             self.interpreter = tflite.Interpreter(model_path=tflite_path)
