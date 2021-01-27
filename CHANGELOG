@@ -1,3 +1,9 @@
+tensorflow-yolov4 (2.1.0) unstable; urgency=medium
+
+  * tflite: add edgetpu_lib argument to load_tflite()
+
+ -- Hyeonki Hong <hhk7734@gmail.com>  Wed, 27 Jan 2021 11:09:02 +0900
+
 tensorflow-yolov4 (2.0.3) unstable; urgency=medium
 
   * common: allow media_path to be video stream id
