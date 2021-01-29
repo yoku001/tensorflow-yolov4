@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import tensorflow as tf
 from tensorflow import keras
 
 
@@ -31,6 +32,43 @@ class Mish(keras.layers.Layer):
 
 
 class YOLOConv2D(keras.Sequential):
-    def __init__(self):
-        # TODO
-        pass
+    def __init__(
+        self,
+        activation: str,
+        filters: int,
+        kernel_regularizer,
+        kernel_size: int,
+        strides: int,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        if strides == 2:
+            self.add(keras.layers.ZeroPadding2D(((1, 0), (1, 0))))
+
+        self.add(
+            keras.layers.Conv2D(
+                filters=filters,
+                kernel_size=(kernel_size, kernel_size),
+                padding="same" if strides == 1 else "valid",
+                strides=(strides, strides),
+                use_bias=activation == "linear",
+                kernel_regularizer=kernel_regularizer,
+                kernel_initializer=tf.random_normal_initializer(stddev=0.01),
+                bias_initializer=tf.constant_initializer(0.0),
+            )
+        )
+
+        if activation != "linear":
+            self.add(keras.layers.BatchNormalization())
+
+            if activation == "mish":
+                self.add(Mish())
+            elif activation == "leaky":
+                self.add(keras.layers.LeakyReLU(alpha=0.1))
+            elif activation == "relu":
+                self.add(keras.layers.ReLU())
+            else:
+                raise ValueError(
+                    f"YOLOConv2D: '{activation}' is not supported."
+                )
