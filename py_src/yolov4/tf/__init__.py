@@ -27,12 +27,11 @@ import shutil
 import cv2
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import backend, layers, optimizers
+from tensorflow import keras
 
 from . import dataset, train, weights
-from .train import SaveWeightsCallback
+from .model import YOLOv4Model
 from ..common.base_class import BaseClass
-from ..model import yolov4
 
 physical_devices = tf.config.experimental.list_physical_devices("GPU")
 if len(physical_devices) > 0:
@@ -41,47 +40,15 @@ if len(physical_devices) > 0:
 
 
 class YOLOv4(BaseClass):
-    def __init__(self, tiny: bool = False, tpu: bool = False):
-        """
-        Default configuration
-        """
-        super(YOLOv4, self).__init__(tiny=tiny, tpu=tpu)
+    def __init__(self):
+        super().__init__()
+        self._model = None
 
-        self.batch_size = 32
-        self._has_weights = False
-        self.input_size = 608
-        self.model = None
-
-    def make_model(
-        self,
-        activation0: str = "mish",
-        activation1: str = "leaky",
-        kernel_regularizer=tf.keras.regularizers.l2(0.0005),
-    ):
-        # pylint: disable=missing-function-docstring
-        self._has_weights = False
-        backend.clear_session()
-
-        # height, width, channels
-        inputs = layers.Input([self.input_size[1], self.input_size[0], 3])
-        if self.tiny:
-            self.model = yolov4.YOLOv4Tiny(
-                anchors=self.anchors,
-                num_classes=len(self.classes),
-                xyscales=self.xyscales,
-                activation=activation1,
-                kernel_regularizer=kernel_regularizer,
-            )
-        else:
-            self.model = yolov4.YOLOv4(
-                anchors=self.anchors,
-                num_classes=len(self.classes),
-                xyscales=self.xyscales,
-                activation0=activation0,
-                activation1=activation1,
-                kernel_regularizer=kernel_regularizer,
-            )
-        self.model(inputs)
+    def make_model(self):
+        keras.backend.clear_session()
+        _input = keras.layers.Input(self.config.input_shape)
+        self._model = YOLOv4Model(self.config)
+        self._model(_input)
 
     def load_weights(self, weights_path: str, weights_type: str = "tf"):
         """
@@ -241,7 +208,7 @@ class YOLOv4(BaseClass):
         self,
         loss_iou_type: str = "ciou",
         loss_verbose=1,
-        optimizer=optimizers.Adam(learning_rate=1e-4),
+        optimizer=keras.optimizers.Adam(learning_rate=1e-4),
         **kwargs
     ):
         # TODO: steps_per_execution tensorflow2.4.0-rc4
