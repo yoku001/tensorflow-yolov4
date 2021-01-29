@@ -28,12 +28,12 @@ import cv2
 import numpy as np
 
 from . import media, predict
+from .config import YOLOConfig
 
 
 class BaseClass:
     def __init__(self):
-        # TODO
-        pass
+        self.config = YOLOConfig()
 
     def resize_image(self, image, ground_truth=None):
         """
