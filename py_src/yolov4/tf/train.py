@@ -30,23 +30,9 @@ from tensorflow.keras.losses import BinaryCrossentropy, Loss, Reduction
 
 
 class YOLOv4Loss(Loss):
-    def __init__(self, batch_size, iou_type, verbose=0):
-        super(YOLOv4Loss, self).__init__(name="YOLOv4Loss")
-        self.batch_size = batch_size
-        if iou_type == "iou":
-            self.bbox_xiou = bbox_iou
-        elif iou_type == "giou":
-            self.bbox_xiou = bbox_giou
-        elif iou_type == "ciou":
-            self.bbox_xiou = bbox_ciou
-
-        self.verbose = verbose
-
-        self.while_cond = lambda i, iou: tf.less(i, self.batch_size)
-
-        self.prob_binaryCrossentropy = BinaryCrossentropy(
-            reduction=Reduction.NONE
-        )
+    def __init__(self):
+        # TODO
+        pass
 
     def call(self, y_true, y_pred):
         """

@@ -37,57 +37,12 @@ from ..common import media
 class Dataset:
     def __init__(
         self,
-        anchors: np.ndarray = None,
-        batch_size: int = 2,
         dataset_path: str = None,
         dataset_type: str = "converted_coco",
-        data_augmentation: bool = True,
-        input_size: Union[list, tuple] = None,
-        label_smoothing: float = 0.1,
-        num_classes: int = None,
         image_path_prefix: str = None,
-        strides: np.ndarray = None,
-        xyscales: np.ndarray = None,
     ):
-        # anchors / width
-        self.anchors_ratio = anchors / input_size[0]
-        self.batch_size = batch_size
-        self.dataset_path = dataset_path
-        # "yolo", "converted_coco"
-        self.dataset_type = dataset_type
-        self.data_augmentation = data_augmentation
-        # (height, width)
-        self.grid_size = (input_size[1], input_size[0]) // np.stack(
-            (strides, strides), axis=-1
-        )
-        self.input_size = input_size
-        self.label_smoothing = label_smoothing
-        self.image_path_prefix = image_path_prefix
-        self.num_classes = num_classes
-        self.xysclaes = xyscales
-
-        self.grid_xy = [
-            np.tile(
-                np.reshape(
-                    np.stack(
-                        np.meshgrid(
-                            (np.arange(_size[0]) + 0.5) / _size[0],
-                            (np.arange(_size[1]) + 0.5) / _size[1],
-                        ),
-                        axis=-1,
-                    ),
-                    (1, _size[0], _size[1], 1, 2),
-                ),
-                (1, 1, 1, 3, 1),
-            ).astype(np.float32)
-            for _size in self.grid_size  # (height, width)
-        ]
-
-        self.dataset = self.load_dataset()
-
-        self.count = 0
-        if self.data_augmentation:
-            np.random.shuffle(self.dataset)
+        # TODO
+        pass
 
     def load_dataset(self):
         """

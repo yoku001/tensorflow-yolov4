@@ -23,7 +23,6 @@ SOFTWARE.
 """
 from os import path
 import time
-from typing import Union
 
 import cv2
 import numpy as np
@@ -32,130 +31,9 @@ from . import media, predict
 
 
 class BaseClass:
-    def __init__(self, tiny: bool = False, tpu: bool = False):
-        """
-        Default configuration
-        """
-        self.tiny = tiny
-        self.tpu = tpu
-
-        # properties
-        if tiny:
-            self.anchors = [
-                [[23, 27], [37, 58], [81, 82]],
-                [[81, 82], [135, 169], [344, 319]],
-            ]
-        else:
-            self.anchors = [
-                [[12, 16], [19, 36], [40, 28]],
-                [[36, 75], [76, 55], [72, 146]],
-                [[142, 110], [192, 243], [459, 401]],
-            ]
-        self._classes = None
-        self._input_size = None
-        if tiny:
-            self._strides = np.array([16, 32])
-        else:
-            self._strides = np.array([8, 16, 32])
-        if tiny:
-            self.xyscales = [1.05, 1.05]
-        else:
-            self.xyscales = [1.2, 1.1, 1.05]
-
-    @property
-    def anchors(self):
-        """
-        Usage:
-            yolo.anchors = [12, 16, 19, 36, 40, 28, 36, 75,
-                            76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
-            yolo.anchors = np.array([12, 16, 19, 36, 40, 28, 36, 75,
-                            76, 55, 72, 146, 142, 110, 192, 243, 459, 401])
-            print(yolo.anchors)
-        """
-        return self._anchors
-
-    @anchors.setter
-    def anchors(self, anchors: Union[list, tuple, np.ndarray]):
-        if isinstance(anchors, (list, tuple)):
-            self._anchors = np.array(anchors)
-        elif isinstance(anchors, np.ndarray):
-            self._anchors = anchors
-
-        if self.tiny:
-            self._anchors = self._anchors.astype(np.float32).reshape(2, 3, 2)
-        else:
-            self._anchors = self._anchors.astype(np.float32).reshape(3, 3, 2)
-
-    @property
-    def classes(self):
-        """
-        Usage:
-            yolo.classes = {0: 'person', 1: 'bicycle', 2: 'car', ...}
-            yolo.classes = "path/classes"
-            print(len(yolo.classes))
-        """
-        return self._classes
-
-    @classes.setter
-    def classes(self, data: Union[str, dict]):
-        if isinstance(data, str):
-            self._classes = media.read_classes_names(data)
-        elif isinstance(data, dict):
-            self._classes = data
-        else:
-            raise TypeError("YOLOv4: Set classes path or dictionary")
-
-    @property
-    def input_size(self):
-        """
-        (width, height)
-
-        Usage:
-            yolo.input_size = 608
-            yolo.input_size = (608, 416) # (width, height)
-            print(yolo.input_size)
-        """
-        return self._input_size
-
-    @input_size.setter
-    def input_size(self, size: Union[int, list, tuple]):
-        if isinstance(size, int):
-            size = (size, size)
-        if size[0] % 32 == 0 and size[1] % 32 == 0:
-            self._input_size = tuple(size)
-        else:
-            raise ValueError("YOLOv4: Set input_size to multiples of 32")
-
-    @property
-    def strides(self):
-        """
-        Tiny(convolution stride = 2)
-            640x480 -> 320x240 -> ... -> 40x30 -> ... -> 20x15 -> ... -> 40x30
-            pred_m: 640x480 -> stride = 16 -> 40x30
-            pred_l: 640x480 -> stride = 32 -> 20x15
-        """
-        return self._strides
-
-    @strides.setter
-    def strides(self, strides: Union[list, tuple, np.ndarray]):
-        raise ValueError("YOLOv4: Do not change yolo.strides")
-
-    @property
-    def xyscales(self):
-        """
-        Usage:
-            yolo.xyscales = [1.2, 1.1, 1.05]
-            yolo.xyscales = np.array([1.2, 1.1, 1.05])
-            print(yolo.xyscales)
-        """
-        return self._xyscales
-
-    @xyscales.setter
-    def xyscales(self, xyscales: Union[list, tuple, np.ndarray]):
-        if isinstance(xyscales, (list, tuple)):
-            self._xyscales = np.array(xyscales)
-        elif isinstance(xyscales, np.ndarray):
-            self._xyscales = xyscales
+    def __init__(self):
+        # TODO
+        pass
 
     def resize_image(self, image, ground_truth=None):
         """

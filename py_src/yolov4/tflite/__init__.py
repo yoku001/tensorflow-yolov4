@@ -43,16 +43,9 @@ EDGETPU_SHARED_LIB = {
 
 
 class YOLOv4(BaseClass):
-    def __init__(self, tiny: bool = False, tpu: bool = False):
-        """
-        Default configuration
-        """
-        super(YOLOv4, self).__init__(tiny=tiny, tpu=tpu)
-        self.grid_coord = []
-        self.input_index = None
-        self.interpreter = None
-        self.output_index = None
-        self.output_size = None
+    def __init__(self, tpu: bool = False):
+        # TODO
+        pass
 
     def load_tflite(
         self, tflite_path: str, edgetpu_lib: str = EDGETPU_SHARED_LIB
