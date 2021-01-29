@@ -66,27 +66,30 @@ class YOLOv4Model(keras.Model):
                         self._model_layers.append(lambda x: x)
                     else:
                         self._model_layers.append(
-                            keras.layers.Concatenate(axis=-1)
+                            keras.layers.Concatenate(axis=-1, name=layer_name)
                         )
 
             elif layer_option["type"] == "shortcut":
-                self._model_layers.append(keras.layers.Add())
+                self._model_layers.append(keras.layers.Add(name=layer_name))
 
             elif layer_option["type"] == "maxpool":
                 self._model_layers.append(
                     keras.layers.MaxPooling2D(
+                        name=layer_name,
+                        padding="same",
                         pool_size=(layer_option["size"], layer_option["size"]),
                         strides=(
                             layer_option["stride"],
                             layer_option["stride"],
                         ),
-                        padding="same",
                     )
                 )
 
             elif layer_option["type"] == "upsample":
                 self._model_layers.append(
-                    keras.layers.UpSampling2D(interpolation="bilinear")
+                    keras.layers.UpSampling2D(
+                        interpolation="bilinear", name=layer_name
+                    )
                 )
 
             elif layer_option["type"] == "yolo":
