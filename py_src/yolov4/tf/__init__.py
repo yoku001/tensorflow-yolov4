@@ -53,26 +53,34 @@ class YOLOv4(BaseClass):
     def load_weights(self, weights_path: str, weights_type: str = "tf"):
         """
         Usage:
-            yolo.load_weights("yolov4.weights", weights_type="yolo")
             yolo.load_weights("checkpoints")
+            yolo.load_weights("yolov4.weights", weights_type="yolo")
         """
         if weights_type == "yolo":
-            weights.load_weights(self.model, weights_path, tiny=self.tiny)
+            weights.load_weights(self._model, weights_path)
         elif weights_type == "tf":
-            self.model.load_weights(weights_path)
+            self._model.load_weights(weights_path)
 
-        self._has_weights = True
-
-    def save_weights(self, weights_path: str, weights_type: str = "tf"):
+    def save_weights(
+        self, weights_path: str, weights_type: str = "tf", to: int = 0
+    ):
         """
         Usage:
-            yolo.save_weights("yolov4.weights", weights_type="yolo")
             yolo.save_weights("checkpoints")
+            yolo.save_weights("yolov4.weights", weights_type="yolo")
+            yolo.save_weights("yolov4.conv.137", weights_type="yolo", to=137)
         """
+        to_layer = ""
+        if to > 0:
+            for name, option in self.config.items():
+                if option["count"] == to - 1:
+                    to_layer = name
+                    break
+
         if weights_type == "yolo":
-            weights.save_weights(self.model, weights_path, tiny=self.tiny)
+            weights.save_weights(self._model, weights_path, to=to_layer)
         elif weights_type == "tf":
-            self.model.save_weights(weights_path)
+            self._model.save_weights(weights_path)
 
     def save_as_tflite(
         self,
@@ -209,7 +217,7 @@ class YOLOv4(BaseClass):
         loss_iou_type: str = "ciou",
         loss_verbose=1,
         optimizer=keras.optimizers.Adam(learning_rate=1e-4),
-        **kwargs
+        **kwargs,
     ):
         # TODO: steps_per_execution tensorflow2.4.0-rc4
         self.model.compile(
@@ -219,7 +227,7 @@ class YOLOv4(BaseClass):
                 iou_type=loss_iou_type,
                 verbose=loss_verbose,
             ),
-            **kwargs
+            **kwargs,
         )
 
     def fit(
@@ -233,7 +241,7 @@ class YOLOv4(BaseClass):
         steps_per_epoch=None,
         validation_steps=None,
         validation_freq=1,
-        **kwargs
+        **kwargs,
     ):
         self.model.fit(
             data_set,
@@ -246,7 +254,7 @@ class YOLOv4(BaseClass):
             steps_per_epoch=steps_per_epoch,
             validation_steps=validation_steps,
             validation_freq=validation_freq,
-            **kwargs
+            **kwargs,
         )
 
     def save_dataset_for_mAP(
