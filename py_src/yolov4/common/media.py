@@ -176,19 +176,3 @@ def draw_bboxes(image: np.ndarray, bboxes: np.ndarray, classes: dict):
         )
 
     return image
-
-
-def read_classes_names(classes_name_path):
-    """
-    @return {id: class name}
-    """
-    classes = {}
-    with open(classes_name_path, "r") as fd:
-        index = 0
-        for class_name in fd:
-            class_name = class_name.strip()
-            if len(class_name) != 0:
-                classes[index] = class_name.replace(" ", "_")
-                index += 1
-
-    return classes

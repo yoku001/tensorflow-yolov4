@@ -167,3 +167,19 @@ def parse_cfg(cfg_path: str) -> Dict[str, Any]:
     # print(count)
 
     return config
+
+
+def parse_names(names_path: str) -> Dict[int, str]:
+    """
+    @return {id: class name}
+    """
+    names: Dict[int, str] = {}
+    with open(names_path, "r") as fd:
+        index = 0
+        for class_name in fd:
+            class_name = class_name.strip()
+            if len(class_name) != 0:
+                names[index] = class_name
+                index += 1
+
+    return names
