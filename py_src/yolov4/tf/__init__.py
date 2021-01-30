@@ -283,7 +283,8 @@ class YOLOv4(BaseClass):
         )
 
     def save_dataset_for_mAP(
-        self, mAP_path, data_set, num_sample=None, images_optional=False
+        self, mAP_path, data_set, num_sample=None, images_optional=False,
+         iou_threshold=0.3, score_threshold=0.2
     ):
         """
         gt: name left top right bottom
@@ -350,7 +351,7 @@ class YOLOv4(BaseClass):
                         )
                     )
 
-            pred_bboxes = self.predict(image)
+            pred_bboxes = self.predict(image, iou_threshold=iou_threshold, score_threshold=score_threshold)
             pred_bboxes = pred_bboxes * np.array(
                 [width, height, width, height, 1, 1]
             )
