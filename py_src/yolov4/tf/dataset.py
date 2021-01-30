@@ -29,6 +29,7 @@ from typing import Union
 
 import cv2
 import numpy as np
+import tensorflow as tf
 
 from . import train
 from ..common import media
@@ -290,8 +291,12 @@ class Dataset:
                 _dataset = mosaic(*[self._next_data() for _ in range(4)])
         else:
             _dataset = self._next_data()
+        
+        img = _dataset[0]
+        img = tf.image.random_brightness(img, 0.1)
+        img = tf.image.random_hue(_dataset[0], 0.1)
 
-        return _dataset
+        return (img, _dataset[1])
 
     def __iter__(self):
         self.count = 0
